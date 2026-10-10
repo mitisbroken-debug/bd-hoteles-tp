@@ -130,9 +130,9 @@ con_offset AS (
 INSERT INTO reserva (habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado, fecha_creacion)
 SELECT
     habitacion_id,
-    (floor(random() * 500000) + 1)::bigint,               -- huesped_id aleatorio (1 a 500.000)
-    DATE '2015-01-01' + offset_dias,
-    DATE '2015-01-01' + offset_dias + largo_estadia,
+    (floor(random() * 500000) + 1)::bigint,
+    DATE '2015-01-01' + offset_dias::int,
+    DATE '2015-01-01' + offset_dias::int + largo_estadia,
     CASE
         WHEN random() < 0.60 THEN 'confirmada'
         WHEN random() < 0.85 THEN 'pendiente'
