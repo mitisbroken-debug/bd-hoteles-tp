@@ -1,0 +1,16 @@
+services:
+  db-hoteles:
+    image: postgres:16
+    container_name: db-hoteles
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: hoteles_app
+      POSTGRES_PASSWORD: hoteles_pass_2026
+      POSTGRES_DB: hoteles
+    ports:
+      - "5440:5432"
+    volumes:
+      - hoteles-data:/var/lib/postgresql/data
+
+volumes:
+  hoteles-data:
