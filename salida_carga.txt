@@ -1,0 +1,38 @@
+Timing is on.
+Time: 1.194 ms
+ERROR:  duplicate key value violates unique constraint "tipo_habitacion_nombre_key"
+DETAIL:  Key (nombre)=(Individual) already exists.
+Time: 0.431 ms
+ERROR:  duplicate key value violates unique constraint "comodidad_nombre_key"
+DETAIL:  Key (nombre)=(WiFi) already exists.
+INSERT 0 50
+Time: 10.248 ms
+Time: 0.965 ms
+ERROR:  duplicate key value violates unique constraint "hotel_contacto_hotel_id_tipo_valor_key"
+DETAIL:  Key (hotel_id, tipo, valor)=(1, telefono, +54 11 04000001) already exists.
+INSERT 0 450
+Time: 10.267 ms
+Time: 1.009 ms
+ERROR:  duplicate key value violates unique constraint "habitacion_hotel_id_numero_key"
+DETAIL:  Key (hotel_id, numero)=(1, 0001) already exists.
+INSERT 0 14445
+Time: 370.034 ms
+ERROR:  duplicate key value violates unique constraint "huesped_documento_key"
+DETAIL:  Key (documento)=(20000001) already exists.
+Time: 30.830 ms
+ERROR:  duplicate key value violates unique constraint "huesped_contacto_huesped_id_tipo_valor_key"
+DETAIL:  Key (huesped_id, tipo, valor)=(1, email, huesped1@mail.com) already exists.
+Time: 0.630 ms
+INSERT 0 500000
+Time: 15578.828 ms (00:15.579)
+ERROR:  constraint "reserva_habitacion_id_daterange_excl" of relation "reserva" does not exist
+Time: 20934.586 ms (00:20.935)
+INSERT 0 6000000
+Time: 91290.001 ms (01:31.290)
+ERROR:  could not create exclusion constraint "reserva_habitacion_id_daterange_excl"
+DETAIL:  Key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-02)) conflicts with key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-08)).
+Time: 230475.205 ms (03:50.475)
+Time: 31.692 ms
+Timing is off.
+ERROR:  duplicate key value violates unique constraint "tarifa_reserva_id_key"
+DETAIL:  Key (reserva_id)=(1) already exists.

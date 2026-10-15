@@ -89,7 +89,7 @@ SET
    Batches: 1  Memory Usage: 24kB
    Buffers: shared hit=192 read=185376
    I/O Timings: shared read=214.167
-   ->  Seq Scan on reserva  (cost=0.00..365568.96 rows=18000096 width=18) (actual time=0.036..984.050 rows=18000000 loops=1)
+   ->  Seq Scan on reserva  (cost=0.00..365568.96 rows=18000096 width=18) (actual time=0.036..984.050 rows=6000000 loops=1)
          Buffers: shared hit=192 read=185376
          I/O Timings: shared read=214.167
  Planning:

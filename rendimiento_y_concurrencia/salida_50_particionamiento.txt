@@ -16,7 +16,7 @@ CREATE TABLE reserva_p_default PARTITION OF reserva_part DEFAULT;
 CREATE TABLE
 Time: 6.040 ms
 INSERT INTO reserva_part SELECT * FROM reserva;
-INSERT 0 18000000
+INSERT 0 6000000
 Time: 44033.822 ms (00:44.034)
 ALTER TABLE reserva_part ADD PRIMARY KEY (id, fecha_inicio);
 ALTER TABLE

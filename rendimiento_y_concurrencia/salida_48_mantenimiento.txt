@@ -39,7 +39,7 @@ Timing is on.
 INFO:  vacuuming "hoteles.public.reserva"
 INFO:  finished vacuuming "hoteles.public.reserva": index scans: 0
 pages: 0 removed, 187629 remain, 187629 scanned (100.00% of total)
-tuples: 200010 removed, 18000000 remain, 0 are dead but not yet removable
+tuples: 200010 removed, 6000000 remain, 0 are dead but not yet removable
 removable cutoff: 976, which was 0 XIDs old when operation ended
 frozen: 3 pages from table (0.00% of total) had 101 tuples frozen
 index scan bypassed: 2063 pages from table (1.10% of total) have 200002 dead item identifiers
