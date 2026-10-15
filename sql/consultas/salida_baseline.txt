@@ -1,0 +1,457 @@
+﻿Timing is on.
+--- Rango de fechas de los datos
+   desde    |   hasta    
+------------+------------
+ 2015-01-01 | 2025-05-13
+(1 row)
+
+Time: 329.906 ms
+--- Indices actuales
+ tablename  |              indexname               | tamano 
+------------+--------------------------------------+--------
+ habitacion | habitacion_hotel_id_numero_key       | 464 kB
+ habitacion | habitacion_pkey                      | 240 kB
+ huesped    | huesped_documento_key                | 15 MB
+ huesped    | huesped_pkey                         | 11 MB
+ reserva    | idx_reserva_anio                     | 129 MB
+ reserva    | idx_reserva_cobertura                | 284 MB
+ reserva    | idx_reserva_fecha_inicio             | 41 MB
+ reserva    | idx_reserva_hab_fecha                | 181 MB
+ reserva    | idx_reserva_huesped                  | 51 MB
+ reserva    | idx_reserva_huesped_cob              | 284 MB
+ reserva    | reserva_habitacion_id_daterange_excl | 474 MB
+ reserva    | reserva_pkey                         | 129 MB
+ tarifa     | tarifa_pkey                          | 77 MB
+ tarifa     | tarifa_reserva_id_key                | 77 MB
+(14 rows)
+
+Time: 23.632 ms
+--- Q11 con fechas de 2022 (disponibilidad real)
+                                                                      QUERY PLAN                                                                       
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=273.12..273.14 rows=10 width=13) (actual time=24.405..24.406 rows=3 loops=1)
+   Sort Key: hab.numero
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=232 read=1008
+   ->  Nested Loop Anti Join  (cost=10.27..272.95 rows=10 width=13) (actual time=5.914..24.373 rows=3 loops=1)
+         Buffers: shared hit=229 read=1008
+         ->  Bitmap Heap Scan on habitacion hab  (cost=9.84..96.34 rows=200 width=13) (actual time=0.489..1.670 rows=200 loops=1)
+               Recheck Cond: (hotel_id = 1)
+               Heap Blocks: exact=83
+               Buffers: shared hit=3 read=85
+               ->  Bitmap Index Scan on habitacion_hotel_id_numero_key  (cost=0.00..9.79 rows=200 width=0) (actual time=0.028..0.028 rows=200 loops=1)
+                     Index Cond: (hotel_id = 1)
+                     Buffers: shared hit=3 read=2
+         ->  Index Only Scan using idx_reserva_cobertura on reserva r  (cost=0.43..24.43 rows=107 width=8) (actual time=0.112..0.112 rows=1 loops=200)
+               Index Cond: ((habitacion_id = hab.id) AND (fecha_inicio < '2022-07-10'::date))
+               Filter: (((estado)::text <> 'cancelada'::text) AND (fecha_fin > '2022-07-01'::date))
+               Rows Removed by Filter: 457
+               Heap Fetches: 0
+               Buffers: shared hit=226 read=923
+ Planning:
+   Buffers: shared hit=128 read=17
+ Planning Time: 3.442 ms
+ Execution Time: 24.460 ms
+(23 rows)
+
+Time: 31.957 ms
+--- Q12 con fechas de 2022 (operador &&)
+                                                                          QUERY PLAN                                                                           
+---------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=1762.01..1762.03 rows=10 width=13) (actual time=112.580..112.582 rows=3 loops=1)
+   Sort Key: hab.numero
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=541 read=568
+   ->  Nested Loop Anti Join  (cost=10.25..1761.84 rows=10 width=13) (actual time=24.272..112.568 rows=3 loops=1)
+         Buffers: shared hit=541 read=568
+         ->  Bitmap Heap Scan on habitacion hab  (cost=9.84..96.34 rows=200 width=13) (actual time=0.022..0.359 rows=200 loops=1)
+               Recheck Cond: (hotel_id = 1)
+               Heap Blocks: exact=83
+               Buffers: shared hit=85
+               ->  Bitmap Index Scan on habitacion_hotel_id_numero_key  (cost=0.00..9.79 rows=200 width=0) (actual time=0.012..0.012 rows=200 loops=1)
+                     Index Cond: (hotel_id = 1)
+                     Buffers: shared hit=2
+         ->  Index Scan using reserva_habitacion_id_daterange_excl on reserva r  (cost=0.41..28.31 rows=6 width=8) (actual time=0.559..0.559 rows=1 loops=200)
+               Index Cond: ((habitacion_id = hab.id) AND (daterange(fecha_inicio, fecha_fin, '[)'::text) && '[2022-07-01,2022-07-10)'::daterange))
+               Buffers: shared hit=456 read=568
+ Planning:
+   Buffers: shared hit=27 read=1
+ Planning Time: 0.393 ms
+ Execution Time: 112.609 ms
+(20 rows)
+
+Time: 113.904 ms
+--- Q16 SELECT * (2 veces)
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on reserva  (cost=4049.98..70321.91 rows=294395 width=50) (actual time=19.170..91.095 rows=301996 loops=1)
+   Recheck Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+   Heap Blocks: exact=12998
+   Buffers: shared hit=2003 read=11260
+   ->  Bitmap Index Scan on idx_reserva_fecha_inicio  (cost=0.00..3976.38 rows=294395 width=0) (actual time=17.740..17.741 rows=301996 loops=1)
+         Index Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+         Buffers: shared read=265
+ Planning:
+   Buffers: shared hit=8 read=1
+ Planning Time: 0.167 ms
+ Execution Time: 102.796 ms
+(11 rows)
+
+Time: 103.364 ms
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on reserva  (cost=4049.98..70321.91 rows=294395 width=50) (actual time=17.390..48.100 rows=301996 loops=1)
+   Recheck Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+   Heap Blocks: exact=12998
+   Buffers: shared hit=13263
+   ->  Bitmap Index Scan on idx_reserva_fecha_inicio  (cost=0.00..3976.38 rows=294395 width=0) (actual time=15.816..15.817 rows=301996 loops=1)
+         Index Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+         Buffers: shared hit=265
+ Planning Time: 0.168 ms
+ Execution Time: 57.070 ms
+(9 rows)
+
+Time: 57.588 ms
+--- Q16 solo 2 columnas (2 veces)
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on reserva  (cost=4049.98..70321.91 rows=294395 width=16) (actual time=14.481..51.270 rows=301996 loops=1)
+   Recheck Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+   Heap Blocks: exact=12998
+   Buffers: shared hit=13263
+   ->  Bitmap Index Scan on idx_reserva_fecha_inicio  (cost=0.00..3976.38 rows=294395 width=0) (actual time=13.018..13.018 rows=301996 loops=1)
+         Index Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+         Buffers: shared hit=265
+ Planning Time: 0.087 ms
+ Execution Time: 60.525 ms
+(9 rows)
+
+Time: 60.967 ms
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on reserva  (cost=4049.98..70321.91 rows=294395 width=16) (actual time=14.273..52.060 rows=301996 loops=1)
+   Recheck Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+   Heap Blocks: exact=12998
+   Buffers: shared hit=13263
+   ->  Bitmap Index Scan on idx_reserva_fecha_inicio  (cost=0.00..3976.38 rows=294395 width=0) (actual time=12.783..12.784 rows=301996 loops=1)
+         Index Cond: ((fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2022-07-01'::date))
+         Buffers: shared hit=265
+ Planning Time: 0.112 ms
+ Execution Time: 61.022 ms
+(9 rows)
+
+Time: 61.479 ms
+--- Q3 LEFT JOIN huespedes sin reservas
+                                                                    QUERY PLAN                                                                     
+---------------------------------------------------------------------------------------------------------------------------------------------------
+ Aggregate  (cost=103738.32..103738.33 rows=1 width=8) (actual time=1279.132..1281.941 rows=1 loops=1)
+   Buffers: shared hit=14194 read=52414
+   ->  Gather  (cost=10319.50..103738.32 rows=1 width=0) (actual time=1263.139..1281.906 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=14194 read=52414
+         ->  Parallel Hash Right Join  (cost=9319.50..102738.22 rows=1 width=0) (actual time=1244.665..1249.985 rows=1 loops=3)
+               Hash Cond: (r.huesped_id = hu.id)
+               Filter: (r.id IS NULL)
+               Rows Removed by Filter: 2000000
+               Buffers: shared hit=14194 read=52414
+               ->  Parallel Seq Scan on reserva r  (cost=0.00..86856.13 rows=2500013 width=16) (actual time=0.026..259.089 rows=2000000 loops=3)
+                     Buffers: shared hit=14074 read=47782
+               ->  Parallel Hash  (cost=6715.33..6715.33 rows=208333 width=8) (actual time=78.501..78.502 rows=166667 loops=3)
+                     Buckets: 524288  Batches: 1  Memory Usage: 23712kB
+                     Buffers: shared read=4632
+                     ->  Parallel Seq Scan on huesped hu  (cost=0.00..6715.33 rows=208333 width=8) (actual time=4.668..31.535 rows=166667 loops=3)
+                           Buffers: shared read=4632
+ Planning:
+   Buffers: shared hit=18 read=15
+ Planning Time: 8.383 ms
+ JIT:
+   Functions: 35
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.194 ms, Inlining 0.000 ms, Optimization 0.800 ms, Emission 13.123 ms, Total 15.117 ms
+ Execution Time: 1282.370 ms
+(26 rows)
+
+Time: 1304.228 ms (00:01.304)
+--- Q6 top hoteles (tiene un JOIN de sobra a tipo_habitacion)
+                                                                                     QUERY PLAN                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=117524.07..117524.09 rows=10 width=32) (actual time=1202.022..1212.802 rows=10 loops=1)
+   Buffers: shared hit=14448 read=47687
+   ->  Sort  (cost=117524.07..117524.19 rows=50 width=32) (actual time=1191.484..1202.262 rows=10 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=14448 read=47687
+         ->  Finalize GroupAggregate  (cost=117510.32..117522.99 rows=50 width=32) (actual time=1191.404..1202.237 rows=50 loops=1)
+               Group Key: h.id
+               Buffers: shared hit=14448 read=47687
+               ->  Gather Merge  (cost=117510.32..117521.99 rows=100 width=32) (actual time=1191.378..1202.187 rows=150 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=14448 read=47687
+                     ->  Sort  (cost=116510.30..116510.42 rows=50 width=32) (actual time=1175.076..1175.084 rows=50 loops=3)
+                           Sort Key: h.id
+                           Sort Method: quicksort  Memory: 28kB
+                           Buffers: shared hit=14448 read=47687
+                           Worker 0:  Sort Method: quicksort  Memory: 28kB
+                           Worker 1:  Sort Method: quicksort  Memory: 28kB
+                           ->  Partial HashAggregate  (cost=116508.39..116508.89 rows=50 width=32) (actual time=1174.968..1174.980 rows=50 loops=3)
+                                 Group Key: h.id
+                                 Batches: 1  Memory Usage: 24kB
+                                 Buffers: shared hit=14430 read=47687
+                                 Worker 0:  Batches: 1  Memory Usage: 24kB
+                                 Worker 1:  Batches: 1  Memory Usage: 24kB
+                                 ->  Hash Join  (cost=313.24..108974.60 rows=1506758 width=24) (actual time=14.310..996.804 rows=1200547 loops=3)
+                                       Hash Cond: (hab.tipo_habitacion_id = t.id)
+                                       Buffers: shared hit=14430 read=47687
+                                       ->  Hash Join  (cost=312.12..101665.70 rows=1506758 width=32) (actual time=4.223..776.443 rows=1200547 loops=3)
+                                             Hash Cond: (hab.hotel_id = h.id)
+                                             Buffers: shared hit=14427 read=47687
+                                             ->  Hash Join  (cost=309.00..97372.09 rows=1506758 width=16) (actual time=4.152..550.343 rows=1200547 loops=3)
+                                                   Hash Cond: (r.habitacion_id = hab.id)
+                                                   Buffers: shared hit=14421 read=47687
+                                                   ->  Parallel Seq Scan on reserva r  (cost=0.00..93106.17 rows=1506758 width=8) (actual time=0.043..312.033 rows=1200547 loops=3)
+                                                         Filter: ((estado)::text = 'confirmada'::text)
+                                                         Rows Removed by Filter: 799453
+                                                         Buffers: shared hit=14170 read=47686
+                                                   ->  Hash  (cost=184.00..184.00 rows=10000 width=24) (actual time=4.061..4.061 rows=10000 loops=3)
+                                                         Buckets: 16384  Batches: 1  Memory Usage: 675kB
+                                                         Buffers: shared hit=251 read=1
+                                                         ->  Seq Scan on habitacion hab  (cost=0.00..184.00 rows=10000 width=24) (actual time=0.027..2.002 rows=10000 loops=3)
+                                                               Buffers: shared hit=251 read=1
+                                             ->  Hash  (cost=2.50..2.50 rows=50 width=24) (actual time=0.058..0.059 rows=50 loops=3)
+                                                   Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                                                   Buffers: shared hit=6
+                                                   ->  Seq Scan on hotel h  (cost=0.00..2.50 rows=50 width=24) (actual time=0.037..0.045 rows=50 loops=3)
+                                                         Buffers: shared hit=6
+                                       ->  Hash  (cost=1.05..1.05 rows=5 width=8) (actual time=10.071..10.071 rows=5 loops=3)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                             Buffers: shared hit=3
+                                             ->  Seq Scan on tipo_habitacion t  (cost=0.00..1.05 rows=5 width=8) (actual time=10.054..10.056 rows=5 loops=3)
+                                                   Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=84 read=11
+ Planning Time: 3.471 ms
+ JIT:
+   Functions: 97
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 4.283 ms, Inlining 0.000 ms, Optimization 1.903 ms, Emission 38.985 ms, Total 45.171 ms
+ Execution Time: 1214.346 ms
+(61 rows)
+
+Time: 1227.327 ms (00:01.227)
+--- Q7 ingresos por hotel y tipo
+                                                                                           QUERY PLAN                                                                                            
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=224416.58..224416.62 rows=15 width=47) (actual time=3437.820..3491.262 rows=15 loops=1)
+   Buffers: shared hit=14574 read=77604, temp read=41812 written=42108
+   ->  Sort  (cost=224416.58..224417.20 rows=250 width=47) (actual time=3413.408..3466.847 rows=15 loops=1)
+         Sort Key: (sum(tf.monto)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=14574 read=77604, temp read=41812 written=42108
+         ->  Finalize GroupAggregate  (cost=224343.98..224410.44 rows=250 width=47) (actual time=3412.744..3466.704 rows=250 loops=1)
+               Group Key: h.nombre, t.nombre
+               Buffers: shared hit=14571 read=77604, temp read=41812 written=42108
+               ->  Gather Merge  (cost=224343.98..224402.32 rows=500 width=47) (actual time=3412.717..3466.361 rows=750 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=14571 read=77604, temp read=41812 written=42108
+                     ->  Sort  (cost=223343.96..223344.58 rows=250 width=47) (actual time=3397.972..3397.994 rows=250 loops=3)
+                           Sort Key: h.nombre, t.nombre
+                           Sort Method: quicksort  Memory: 52kB
+                           Buffers: shared hit=14571 read=77604, temp read=41812 written=42108
+                           Worker 0:  Sort Method: quicksort  Memory: 52kB
+                           Worker 1:  Sort Method: quicksort  Memory: 52kB
+                           ->  Partial HashAggregate  (cost=223330.88..223334.00 rows=250 width=47) (actual time=3397.508..3397.586 rows=250 loops=3)
+                                 Group Key: h.nombre, t.nombre
+                                 Batches: 1  Memory Usage: 157kB
+                                 Buffers: shared hit=14553 read=77604, temp read=41812 written=42108
+                                 Worker 0:  Batches: 1  Memory Usage: 157kB
+                                 Worker 1:  Batches: 1  Memory Usage: 157kB
+                                 ->  Hash Join  (cost=71420.61..212075.75 rows=1500683 width=21) (actual time=1756.788..3023.065 rows=1200547 loops=3)
+                                       Hash Cond: (hab.tipo_habitacion_id = t.id)
+                                       Buffers: shared hit=14553 read=77604, temp read=41812 written=42108
+                                       ->  Hash Join  (cost=71419.50..204796.32 rows=1500683 width=22) (actual time=1747.860..2808.336 rows=1200547 loops=3)
+                                             Hash Cond: (hab.hotel_id = h.id)
+                                             Buffers: shared hit=14524 read=77604, temp read=41812 written=42108
+                                             ->  Hash Join  (cost=71416.37..200520.00 rows=1500683 width=22) (actual time=1747.806..2599.337 rows=1200547 loops=3)
+                                                   Hash Cond: (r.habitacion_id = hab.id)
+                                                   Buffers: shared hit=14518 read=77604, temp read=41812 written=42108
+                                                   ->  Parallel Hash Join  (cost=71107.37..196270.04 rows=1500683 width=14) (actual time=1744.702..2358.605 rows=1200547 loops=3)
+                                                         Hash Cond: (r.id = tf.reserva_id)
+                                                         Buffers: shared hit=14266 read=77604, temp read=41812 written=42108
+                                                         ->  Parallel Seq Scan on reserva r  (cost=0.00..86856.13 rows=2500013 width=16) (actual time=0.054..252.270 rows=2000000 loops=3)
+                                                               Buffers: shared hit=14266 read=47590
+                                                         ->  Parallel Hash  (cost=45020.83..45020.83 rows=1500683 width=14) (actual time=628.781..628.782 rows=1200547 loops=3)
+                                                               Buckets: 262144  Batches: 32  Memory Usage: 7360kB
+                                                               Buffers: shared read=30014, temp written=15528
+                                                               ->  Parallel Seq Scan on tarifa tf  (cost=0.00..45020.83 rows=1500683 width=14) (actual time=0.091..201.797 rows=1200547 loops=3)
+                                                                     Buffers: shared read=30014
+                                                   ->  Hash  (cost=184.00..184.00 rows=10000 width=24) (actual time=3.075..3.075 rows=10000 loops=3)
+                                                         Buckets: 16384  Batches: 1  Memory Usage: 675kB
+                                                         Buffers: shared hit=252
+                                                         ->  Seq Scan on habitacion hab  (cost=0.00..184.00 rows=10000 width=24) (actual time=0.013..1.202 rows=10000 loops=3)
+                                                               Buffers: shared hit=252
+                                             ->  Hash  (cost=2.50..2.50 rows=50 width=16) (actual time=0.040..0.041 rows=50 loops=3)
+                                                   Buckets: 1024  Batches: 1  Memory Usage: 11kB
+                                                   Buffers: shared hit=6
+                                                   ->  Seq Scan on hotel h  (cost=0.00..2.50 rows=50 width=16) (actual time=0.026..0.031 rows=50 loops=3)
+                                                         Buffers: shared hit=6
+                                       ->  Hash  (cost=1.05..1.05 rows=5 width=15) (actual time=8.897..8.897 rows=5 loops=3)
+                                             Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                                             Buffers: shared hit=3
+                                             ->  Seq Scan on tipo_habitacion t  (cost=0.00..1.05 rows=5 width=15) (actual time=8.880..8.881 rows=5 loops=3)
+                                                   Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=61 read=17
+ Planning Time: 7.769 ms
+ JIT:
+   Functions: 118
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 3.843 ms, Inlining 0.000 ms, Optimization 2.312 ms, Emission 49.067 ms, Total 55.222 ms
+ Execution Time: 3494.539 ms
+(67 rows)
+
+Time: 3504.435 ms (00:03.504)
+--- Q8 top huespedes por gasto
+                                                                                     QUERY PLAN                                                                                      
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=594466.29..594466.31 rows=10 width=61) (actual time=7049.222..7113.309 rows=10 loops=1)
+   Buffers: shared hit=14824 read=81948, temp read=88111 written=111322
+   ->  Sort  (cost=594466.29..595716.29 rows=500000 width=61) (actual time=6753.251..6817.336 rows=10 loops=1)
+         Sort Key: (sum(tf.monto)) DESC
+         Sort Method: top-N heapsort  Memory: 26kB
+         Buffers: shared hit=14824 read=81948, temp read=88111 written=111322
+         ->  Finalize GroupAggregate  (cost=450736.66..583661.47 rows=500000 width=61) (actual time=5890.804..6677.082 rows=499681 loops=1)
+               Group Key: hu.id
+               Buffers: shared hit=14824 read=81948, temp read=88111 written=111322
+               ->  Gather Merge  (cost=450736.66..567411.47 rows=1000000 width=61) (actual time=5890.755..6229.853 rows=716777 loops=1)
+                     Workers Planned: 2
+                     Workers Launched: 2
+                     Buffers: shared hit=14824 read=81948, temp read=88111 written=111322
+                     ->  Sort  (cost=449736.63..450986.63 rows=500000 width=61) (actual time=5785.279..5833.151 rows=238926 loops=3)
+                           Sort Key: hu.id
+                           Sort Method: external merge  Disk: 25232kB
+                           Buffers: shared hit=14824 read=81948, temp read=88111 written=111322
+                           Worker 0:  Sort Method: external merge  Disk: 25584kB
+                           Worker 1:  Sort Method: external merge  Disk: 25416kB
+                           ->  Partial HashAggregate  (cost=356838.56..383605.71 rows=500000 width=61) (actual time=4943.180..5600.883 rows=238926 loops=3)
+                                 Group Key: hu.id
+                                 Planned Partitions: 32  Batches: 33  Memory Usage: 8209kB  Disk Usage: 63040kB
+                                 Buffers: shared hit=14806 read=81948, temp read=78582 written=101767
+                                 Worker 0:  Batches: 33  Memory Usage: 8209kB  Disk Usage: 63080kB
+                                 Worker 1:  Batches: 33  Memory Usage: 8209kB  Disk Usage: 63056kB
+                                 ->  Parallel Hash Join  (cost=81956.87..233501.18 rows=1500683 width=27) (actual time=2808.752..3523.540 rows=1200547 loops=3)
+                                       Hash Cond: (r.huesped_id = hu.id)
+                                       Buffers: shared hit=14806 read=81948, temp read=59290 written=59640
+                                       ->  Parallel Hash Join  (cost=71416.37..203144.35 rows=1500683 width=14) (actual time=1403.713..2020.281 rows=1200547 loops=3)
+                                             Hash Cond: (r.id = tf.reserva_id)
+                                             Buffers: shared hit=14710 read=77412, temp read=41807 written=42116
+                                             ->  Hash Join  (cost=309.00..93730.45 rows=2500013 width=16) (actual time=1.919..496.013 rows=2000000 loops=3)
+                                                   Hash Cond: (r.habitacion_id = hab.id)
+                                                   Buffers: shared hit=14614 read=47494
+                                                   ->  Parallel Seq Scan on reserva r  (cost=0.00..86856.13 rows=2500013 width=24) (actual time=0.039..185.960 rows=2000000 loops=3)
+                                                         Buffers: shared hit=14362 read=47494
+                                                   ->  Hash  (cost=184.00..184.00 rows=10000 width=8) (actual time=1.839..1.840 rows=10000 loops=3)
+                                                         Buckets: 16384  Batches: 1  Memory Usage: 519kB
+                                                         Buffers: shared hit=252
+                                                         ->  Seq Scan on habitacion hab  (cost=0.00..184.00 rows=10000 width=8) (actual time=0.035..0.852 rows=10000 loops=3)
+                                                               Buffers: shared hit=252
+                                             ->  Parallel Hash  (cost=45020.83..45020.83 rows=1500683 width=14) (actual time=382.309..382.310 rows=1200547 loops=3)
+                                                   Buckets: 262144  Batches: 32  Memory Usage: 7360kB
+                                                   Buffers: shared hit=96 read=29918, temp written=15536
+                                                   ->  Parallel Seq Scan on tarifa tf  (cost=0.00..45020.83 rows=1500683 width=14) (actual time=0.085..127.459 rows=1200547 loops=3)
+                                                         Buffers: shared hit=96 read=29918
+                                       ->  Parallel Hash  (cost=6715.33..6715.33 rows=208333 width=21) (actual time=349.419..349.420 rows=166667 loops=3)
+                                             Buckets: 131072  Batches: 4  Memory Usage: 8128kB
+                                             Buffers: shared hit=96 read=4536, temp written=2108
+                                             ->  Parallel Seq Scan on huesped hu  (cost=0.00..6715.33 rows=208333 width=21) (actual time=192.506..211.319 rows=166667 loops=3)
+                                                   Buffers: shared hit=96 read=4536
+ Planning:
+   Buffers: shared hit=53 read=1
+ Planning Time: 1.227 ms
+ JIT:
+   Functions: 103
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 16.088 ms, Inlining 512.066 ms, Optimization 333.203 ms, Emission 243.899 ms, Total 1105.255 ms
+ Execution Time: 7130.069 ms
+(59 rows)
+
+Time: 7131.973 ms (00:07.132)
+--- Q10 comodidades 2022
+                                                                                                      QUERY PLAN                                                                                                       
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Sort  (cost=160045.50..160045.53 rows=10 width=21) (actual time=5648.003..5648.134 rows=10 loops=1)
+   Sort Key: (count(DISTINCT hab.id)) DESC
+   Sort Method: quicksort  Memory: 25kB
+   Buffers: shared hit=70279 read=16484
+   ->  GroupAggregate  (cost=5335.80..160045.34 rows=10 width=21) (actual time=1779.797..5648.111 rows=10 loops=1)
+         Group Key: c.nombre
+         Buffers: shared hit=70279 read=16484
+         ->  Nested Loop  (cost=5335.80..152921.62 rows=1424723 width=21) (actual time=59.191..5497.347 rows=1453642 loops=1)
+               Join Filter: (hab.id = r.habitacion_id)
+               Buffers: shared hit=70279 read=16484
+               ->  Gather Merge  (cost=5335.35..9874.80 rows=39830 width=29) (actual time=59.121..82.096 rows=39830 loops=1)
+                     Workers Planned: 1
+                     Workers Launched: 1
+                     Buffers: shared hit=461 read=178
+                     ->  Sort  (cost=4335.34..4393.92 rows=23429 width=29) (actual time=42.355..46.243 rows=19915 loops=2)
+                           Sort Key: c.nombre, hab.id
+                           Sort Method: quicksort  Memory: 2463kB
+                           Buffers: shared hit=461 read=178
+                           Worker 0:  Sort Method: quicksort  Memory: 865kB
+                           ->  Nested Loop  (cost=0.87..2634.87 rows=23429 width=29) (actual time=9.392..29.688 rows=19915 loops=2)
+                                 Buffers: shared hit=446 read=178
+                                 ->  Merge Join  (cost=0.73..2076.23 rows=23429 width=24) (actual time=9.356..23.950 rows=19915 loops=2)
+                                       Merge Cond: (hc.habitacion_id = hab.id)
+                                       Buffers: shared hit=405 read=178
+                                       ->  Parallel Index Only Scan using habitacion_comodidad_pkey on habitacion_comodidad hc  (cost=0.29..1053.73 rows=23429 width=16) (actual time=0.056..2.921 rows=19915 loops=2)
+                                             Heap Fetches: 0
+                                             Buffers: shared hit=5 read=151
+                                       ->  Materialize  (cost=0.44..637.49 rows=10000 width=8) (actual time=0.074..8.267 rows=24920 loops=2)
+                                             Buffers: shared hit=400 read=27
+                                             ->  Nested Loop  (cost=0.44..612.49 rows=10000 width=8) (actual time=0.066..5.915 rows=9974 loops=2)
+                                                   Buffers: shared hit=400 read=27
+                                                   ->  Index Scan using habitacion_pkey on habitacion hab  (cost=0.29..357.29 rows=10000 width=16) (actual time=0.037..2.668 rows=9974 loops=2)
+                                                         Buffers: shared hit=199 read=27
+                                                   ->  Memoize  (cost=0.15..0.17 rows=1 width=8) (actual time=0.000..0.000 rows=1 loops=19948)
+                                                         Cache Key: hab.hotel_id
+                                                         Cache Mode: logical
+                                                         Hits: 9898  Misses: 50  Evictions: 0  Overflows: 0  Memory Usage: 6kB
+                                                         Buffers: shared hit=201
+                                                         Worker 0:  Hits: 9950  Misses: 50  Evictions: 0  Overflows: 0  Memory Usage: 6kB
+                                                         ->  Index Only Scan using hotel_pkey on hotel h  (cost=0.14..0.16 rows=1 width=8) (actual time=0.001..0.001 rows=1 loops=100)
+                                                               Index Cond: (id = hab.hotel_id)
+                                                               Heap Fetches: 100
+                                                               Buffers: shared hit=201
+                                 ->  Memoize  (cost=0.15..0.16 rows=1 width=21) (actual time=0.000..0.000 rows=1 loops=39830)
+                                       Cache Key: hc.comodidad_id
+                                       Cache Mode: logical
+                                       Hits: 31006  Misses: 10  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+                                       Buffers: shared hit=41
+                                       Worker 0:  Hits: 8804  Misses: 10  Evictions: 0  Overflows: 0  Memory Usage: 2kB
+                                       ->  Index Scan using comodidad_pkey on comodidad c  (cost=0.14..0.15 rows=1 width=21) (actual time=0.002..0.002 rows=1 loops=20)
+                                             Index Cond: (id = hc.comodidad_id)
+                                             Buffers: shared hit=41
+               ->  Memoize  (cost=0.44..4.58 rows=38 width=8) (actual time=0.080..0.131 rows=36 loops=39830)
+                     Cache Key: hc.habitacion_id
+                     Cache Mode: logical
+                     Hits: 14286  Misses: 25544  Evictions: 20057  Overflows: 0  Memory Usage: 8193kB
+                     Buffers: shared hit=69818 read=16306
+                     ->  Index Only Scan using idx_reserva_cobertura on reserva r  (cost=0.43..4.57 rows=38 width=8) (actual time=0.123..0.193 rows=36 loops=25544)
+                           Index Cond: ((habitacion_id = hc.habitacion_id) AND (fecha_inicio >= '2022-01-01'::date) AND (fecha_inicio < '2023-01-01'::date))
+                           Filter: ((estado)::text = 'confirmada'::text)
+                           Rows Removed by Filter: 24
+                           Heap Fetches: 0
+                           Buffers: shared hit=69818 read=16306
+ Planning:
+   Buffers: shared hit=103 read=11
+ Planning Time: 25.249 ms
+ JIT:
+   Functions: 57
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.666 ms, Inlining 0.000 ms, Optimization 0.946 ms, Emission 15.630 ms, Total 18.242 ms
+ Execution Time: 5649.965 ms
+(71 rows)
+
+Time: 5676.257 ms (00:05.676)
