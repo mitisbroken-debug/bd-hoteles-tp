@@ -1,0 +1,79 @@
+ relname | n_live_tup | n_dead_tup | last_autovacuum | last_autoanalyze 
+---------+------------+------------+-----------------+------------------
+ reserva |   18000096 |          0 |                 | 
+(1 row)
+
+  tabla  | indices 
+---------+---------
+ 1450 MB | 512 MB
+(1 row)
+
+Timing is on.
+UPDATE 200000
+Time: 4767.156 ms (00:04.767)
+ n_live_tup | n_dead_tup | last_autovacuum 
+------------+------------+-----------------
+   18000096 |     200000 | 
+(1 row)
+
+  tabla  | indices 
+---------+---------
+ 1466 MB | 516 MB
+(1 row)
+
+Timing is on.
+INFO:  vacuuming "hoteles.public.reserva"
+ERROR:  could not resize shared memory segment "/PostgreSQL.554716094" to 67128704 bytes: No space left on device
+Time: 97.400 ms
+ n_live_tup | n_dead_tup | last_vacuum |         last_analyze          
+------------+------------+-------------+-------------------------------
+   18000096 |     200000 |             | 2026-10-15 03:55:19.158886+00
+(1 row)
+
+  tabla  | indices 
+---------+---------
+ 1466 MB | 516 MB
+(1 row)
+
+Timing is on.
+INFO:  vacuuming "hoteles.public.reserva"
+INFO:  finished vacuuming "hoteles.public.reserva": index scans: 0
+pages: 0 removed, 187629 remain, 187629 scanned (100.00% of total)
+tuples: 200010 removed, 18000000 remain, 0 are dead but not yet removable
+removable cutoff: 976, which was 0 XIDs old when operation ended
+frozen: 3 pages from table (0.00% of total) had 101 tuples frozen
+index scan bypassed: 2063 pages from table (1.10% of total) have 200002 dead item identifiers
+avg read rate: 929.466 MB/s, avg write rate: 259.692 MB/s
+buffer usage: 186818 hits, 186511 misses, 52111 dirtied
+WAL usage: 52105 records, 2070 full page images, 3991734 bytes
+system usage: CPU: user: 0.65 s, system: 0.47 s, elapsed: 1.56 s
+INFO:  analyzing "public.reserva"
+INFO:  "reserva": scanned 30000 of 187629 pages, containing 2878278 live rows and 31719 dead rows; 30000 rows in sample, 18001614 estimated total rows
+VACUUM
+Time: 1922.942 ms (00:01.923)
+ n_live_tup | n_dead_tup |          last_vacuum          |         last_analyze         
+------------+------------+-------------------------------+------------------------------
+   18001614 |     198380 | 2026-10-15 04:01:58.486673+00 | 2026-10-15 04:01:58.65974+00
+(1 row)
+
+  tabla  | indices 
+---------+---------
+ 1466 MB | 516 MB
+(1 row)
+
+ antes  
+--------
+ 126 MB
+(1 row)
+
+Timing is on.
+SET
+Time: 0.117 ms
+REINDEX
+Time: 9240.450 ms (00:09.240)
+ despues 
+---------
+ 126 MB
+(1 row)
+
+Time: 0.376 ms

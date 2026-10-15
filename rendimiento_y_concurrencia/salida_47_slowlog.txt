@@ -1,0 +1,36 @@
+2026-10-14 06:44:37.501 UTC [1] LOG:  parameter "log_min_duration_statement" changed to "200"
+2026-10-14 06:44:44.245 UTC [34338] LOG:  duration: 1005.312 ms  statement: SELECT pg_sleep(1);
+2026-10-14 06:44:48.494 UTC [34338] LOG:  duration: 4249.315 ms  statement: SELECT * FROM reserva WHERE huesped_id = 12345;
+                                                        QUERY PLAN                                                         
+---------------------------------------------------------------------------------------------------------------------------
+ Gather  (cost=1000.00..280322.20 rows=37 width=50) (actual time=5.912..311.307 rows=41 loops=1)
+   Workers Planned: 2
+   Workers Launched: 2
+   Buffers: shared hit=97 read=185471
+   ->  Parallel Seq Scan on reserva  (cost=0.00..279318.50 rows=15 width=50) (actual time=39.594..294.936 rows=14 loops=3)
+         Filter: (huesped_id = 12345)
+         Rows Removed by Filter: 5999986
+         Buffers: shared hit=97 read=185471
+ Planning:
+   Buffers: shared hit=75
+ Planning Time: 0.230 ms
+ JIT:
+   Functions: 6
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.403 ms, Inlining 0.000 ms, Optimization 0.459 ms, Emission 6.154 ms, Total 7.016 ms
+ Execution Time: 331.528 ms
+(16 rows)
+
+CREATE INDEX
+ANALYZE
+                                                            QUERY PLAN                                                            
+----------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_reserva_huesped on reserva  (cost=0.44..153.08 rows=37 width=50) (actual time=0.037..0.300 rows=41 loops=1)
+   Index Cond: (huesped_id = 12345)
+   Buffers: shared hit=3 read=44
+ Planning:
+   Buffers: shared hit=38 read=1
+ Planning Time: 0.159 ms
+ Execution Time: 0.323 ms
+(7 rows)
+

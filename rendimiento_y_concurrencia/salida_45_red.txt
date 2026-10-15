@@ -1,0 +1,10 @@
+=== RED: 500000 filas ===
+
+real	0m2.250s
+user	0m0.107s
+sys	0m0.061s
+=== RED: solo count ===
+
+real	0m0.340s
+user	0m0.030s
+sys	0m0.138s

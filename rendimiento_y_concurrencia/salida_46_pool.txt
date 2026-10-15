@@ -1,0 +1,42 @@
+=== CONEXIONES REUTILIZADAS (equivale a un pool) ===
+pgbench (16.15 (Debian 16.15-1.pgdg13+2))
+transaction type: <builtin: select only>
+scaling factor: 10
+query mode: simple
+number of clients: 20
+number of threads: 4
+maximum number of tries: 1
+duration: 20 s
+number of transactions actually processed: 2308923
+number of failed transactions: 0 (0.000%)
+latency average = 0.173 ms
+initial connection time = 13.526 ms
+tps = 115498.915680 (without initial connection time)
+=== UNA CONEXION NUEVA POR TRANSACCION (sin pool) ===
+pgbench (16.15 (Debian 16.15-1.pgdg13+2))
+transaction type: <builtin: select only>
+scaling factor: 10
+query mode: simple
+number of clients: 20
+number of threads: 4
+maximum number of tries: 1
+duration: 20 s
+number of transactions actually processed: 33978
+number of failed transactions: 0 (0.000%)
+latency average = 11.774 ms
+average connection time = 2.322 ms
+tps = 1698.643760 (including reconnection times)
+=== CONEXIONES REUTILIZADAS (equivale a un pool) ===
+pgbench (16.15 (Debian 16.15-1.pgdg13+2))
+transaction type: <builtin: select only>
+scaling factor: 10
+query mode: simple
+number of clients: 20
+number of threads: 4
+maximum number of tries: 1
+duration: 20 s
+number of transactions actually processed: 2298882
+number of failed transactions: 0 (0.000%)
+latency average = 0.174 ms
+initial connection time = 11.924 ms
+tps = 114976.253109 (without initial connection time)

@@ -1,0 +1,97 @@
+Timing is on.
+CREATE VIEW
+Time: 30.154 ms
+SELECT 18521
+Time: 2596.172 ms (00:02.596)
+CREATE INDEX
+Time: 35.923 ms
+ANALYZE
+Time: 24.302 ms
+                                                                                  QUERY PLAN                                                                                   
+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=284547.23..287480.62 rows=11034 width=30) (actual time=732.936..736.934 rows=370 loops=1)
+   Group Key: ((date_trunc('month'::text, (r.fecha_inicio)::timestamp with time zone))::date), r.estado
+   Buffers: shared hit=710 read=185186
+   ->  Gather Merge  (cost=284547.23..287122.01 rows=22068 width=30) (actual time=732.922..736.816 rows=1103 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=710 read=185186
+         ->  Sort  (cost=283547.21..283574.79 rows=11034 width=30) (actual time=720.456..720.470 rows=368 loops=3)
+               Sort Key: ((date_trunc('month'::text, (r.fecha_inicio)::timestamp with time zone))::date), r.estado
+               Sort Method: quicksort  Memory: 45kB
+               Buffers: shared hit=710 read=185186
+               Worker 0:  Sort Method: quicksort  Memory: 45kB
+               Worker 1:  Sort Method: quicksort  Memory: 45kB
+               ->  Partial HashAggregate  (cost=282613.20..282806.29 rows=11034 width=30) (actual time=720.275..720.350 rows=368 loops=3)
+                     Group Key: (date_trunc('month'::text, (r.fecha_inicio)::timestamp with time zone))::date, r.estado
+                     Batches: 1  Memory Usage: 465kB
+                     Buffers: shared hit=674 read=185186
+                     Worker 0:  Batches: 1  Memory Usage: 465kB
+                     Worker 1:  Batches: 1  Memory Usage: 465kB
+                     ->  Hash Join  (cost=98.84..281488.19 rows=150001 width=22) (actual time=9.603..702.578 rows=120000 loops=3)
+                           Hash Cond: (r.habitacion_id = ha.id)
+                           Buffers: shared hit=674 read=185186
+                           ->  Parallel Seq Scan on reserva r  (cost=0.00..260568.40 rows=7500040 width=22) (actual time=0.023..337.207 rows=6000000 loops=3)
+                                 Buffers: shared hit=384 read=185184
+                           ->  Hash  (cost=96.34..96.34 rows=200 width=16) (actual time=6.198..6.199 rows=200 loops=3)
+                                 Buckets: 1024  Batches: 1  Memory Usage: 18kB
+                                 Buffers: shared hit=264 read=2
+                                 ->  Bitmap Heap Scan on habitacion ha  (cost=9.84..96.34 rows=200 width=16) (actual time=6.067..6.166 rows=200 loops=3)
+                                       Recheck Cond: (hotel_id = 1)
+                                       Heap Blocks: exact=83
+                                       Buffers: shared hit=264 read=2
+                                       ->  Bitmap Index Scan on habitacion_hotel_id_numero_key  (cost=0.00..9.79 rows=200 width=0) (actual time=0.146..0.147 rows=200 loops=3)
+                                             Index Cond: (hotel_id = 1)
+                                             Buffers: shared hit=15 read=2
+ Planning:
+   Buffers: shared hit=297
+ Planning Time: 0.612 ms
+ JIT:
+   Functions: 54
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.870 ms, Inlining 0.000 ms, Optimization 0.882 ms, Emission 16.940 ms, Total 19.692 ms
+ Execution Time: 750.747 ms
+(42 rows)
+
+                                                          QUERY PLAN                                                           
+-------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on mv_reservas_hotel_mes  (cost=11.15..209.23 rows=370 width=30) (actual time=0.045..0.064 rows=370 loops=1)
+   Recheck Cond: (hotel_id = 1)
+   Heap Blocks: exact=3
+   Buffers: shared hit=3 read=3
+   ->  Bitmap Index Scan on ux_mv_reservas  (cost=0.00..11.06 rows=370 width=0) (actual time=0.034..0.034 rows=370 loops=1)
+         Index Cond: (hotel_id = 1)
+         Buffers: shared read=3
+ Planning:
+   Buffers: shared hit=41 read=1
+ Planning Time: 0.141 ms
+ Execution Time: 0.088 ms
+(11 rows)
+
+    id    
+----------
+ 18000001
+(1 row)
+
+INSERT 0 1
+ en_vista 
+----------
+        1
+(1 row)
+
+ en_materializada 
+------------------
+                 
+(1 row)
+
+Timing is on.
+REFRESH MATERIALIZED VIEW
+Time: 2670.459 ms (00:02.670)
+ en_materializada 
+------------------
+                1
+(1 row)
+
+Time: 1.241 ms
+REFRESH MATERIALIZED VIEW
+Time: 2602.551 ms (00:02.603)

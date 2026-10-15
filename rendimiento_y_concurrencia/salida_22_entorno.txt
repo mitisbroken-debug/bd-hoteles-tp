@@ -1,0 +1,66 @@
+                                                       version                                                        
+----------------------------------------------------------------------------------------------------------------------
+ PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+(1 row)
+
+         name         | setting | unit 
+----------------------+---------+------
+ effective_cache_size | 524288  | 8kB
+ max_connections      | 100     | 
+ random_page_cost     | 4       | 
+ shared_buffers       | 16384   | 8kB
+ work_mem             | 4096    | kB
+(5 rows)
+
+  filas   | tam_total | tam_tabla 
+----------+-----------+-----------
+ 18000000 | 1962 MB   | 1450 MB
+(1 row)
+
+
+
+Name                      : AMD Ryzen 7 5700X 8-Core Processor             
+NumberOfCores             : 8
+NumberOfLogicalProcessors : 16
+
+
+
+
+
+RAM_GB : 15,9
+
+
+
+
+
+FriendlyName : TOSHIBA DT01ACA100
+MediaType    : HDD
+Tam_GB       : 932
+
+FriendlyName : GLOWAY VAL256GS3-M.2/80
+MediaType    : SSD
+Tam_GB       : 238
+
+
+
+CPUs=16 RAM_bytes=8285483008 Root=/var/lib/docker OS=Docker Desktop
+
+
+FullName : C:\Users\Administrator\AppData\Local\Docker\wsl\disk\docker_data.vhdx
+GB       : 23,8
+
+FullName : C:\Users\Administrator\AppData\Local\Docker\wsl\main\ext4.vhdx
+GB       : 0,1
+
+
+
+
+DriveLetter Disco                  
+----------- -----                  
+          C GLOWAY VAL256GS3-M.2/80
+          D TOSHIBA DT01ACA100     
+
+
+Tipo=volume Origen=/var/lib/docker/volumes/bd-hoteles-tp_hoteles-data/_data Destino=/var/lib/postgresql/data
+Tipo=bind Origen=/run/desktop/mnt/host/d/hia p/base de dato con brian/bd-hoteles-tp/sql/esquema/schema.sql Destino=/docker-entrypoint-initdb.d/schema.sql
+

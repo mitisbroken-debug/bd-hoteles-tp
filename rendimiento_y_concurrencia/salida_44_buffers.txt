@@ -1,0 +1,95 @@
+ shared_buffers 
+----------------
+ 128MB
+(1 row)
+
+ block_size 
+------------
+ 8192
+(1 row)
+
+CREATE EXTENSION
+             relname             | paginas |  tam   
+---------------------------------+---------+--------
+ pg_attribute                    |      32 | 256 kB
+ pg_proc                         |      16 | 128 kB
+ pg_class                        |      16 | 128 kB
+ pg_attribute_relid_attnum_index |       8 | 64 kB
+ pg_proc_oid_index               |       8 | 64 kB
+ pg_rewrite                      |       7 | 56 kB
+ pg_amop                         |       7 | 56 kB
+ pg_type                         |       6 | 48 kB
+ pg_depend_reference_index       |       6 | 48 kB
+ pg_depend_depender_index        |       6 | 48 kB
+(10 rows)
+
+ blks_hit | blks_read | pct_hit 
+----------+-----------+---------
+     4769 |       235 |   95.30
+(1 row)
+
+=== CORRIDA 1 ===
+                                                                   QUERY PLAN                                                                   
+------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=280318.72..280318.73 rows=1 width=8) (actual time=8026.938..8027.029 rows=1 loops=1)
+   Buffers: shared read=185568
+   ->  Gather  (cost=280318.50..280318.71 rows=2 width=8) (actual time=8026.927..8027.021 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared read=185568
+         ->  Partial Aggregate  (cost=279318.50..279318.51 rows=1 width=8) (actual time=6554.286..6554.288 rows=1 loops=3)
+               Buffers: shared read=185568
+               ->  Parallel Seq Scan on reserva  (cost=0.00..260568.40 rows=7500040 width=0) (actual time=1.050..6333.755 rows=6000000 loops=3)
+                     Buffers: shared read=185568
+ Planning:
+   Buffers: shared hit=52 read=25
+ Planning Time: 1.668 ms
+ JIT:
+   Functions: 8
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.372 ms, Inlining 0.000 ms, Optimization 0.511 ms, Emission 28.841 ms, Total 29.724 ms
+ Execution Time: 8346.739 ms
+(18 rows)
+
+=== CORRIDA 2 ===
+                                                                  QUERY PLAN                                                                   
+-----------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=280318.72..280318.73 rows=1 width=8) (actual time=598.575..601.741 rows=1 loops=1)
+   Buffers: shared hit=96 read=185472
+   ->  Gather  (cost=280318.50..280318.71 rows=2 width=8) (actual time=598.439..601.726 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=96 read=185472
+         ->  Partial Aggregate  (cost=279318.50..279318.51 rows=1 width=8) (actual time=581.040..581.041 rows=1 loops=3)
+               Buffers: shared hit=96 read=185472
+               ->  Parallel Seq Scan on reserva  (cost=0.00..260568.40 rows=7500040 width=0) (actual time=0.034..363.585 rows=6000000 loops=3)
+                     Buffers: shared hit=96 read=185472
+ Planning:
+   Buffers: shared hit=77
+ Planning Time: 0.361 ms
+ JIT:
+   Functions: 8
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.557 ms, Inlining 0.000 ms, Optimization 0.538 ms, Emission 8.525 ms, Total 9.621 ms
+ Execution Time: 620.960 ms
+(18 rows)
+
+             relname             | paginas |   tam   
+---------------------------------+---------+---------
+ reserva                         |     192 | 1536 kB
+ pg_attribute                    |      31 | 248 kB
+ pg_class                        |      15 | 120 kB
+ pg_proc                         |      10 | 80 kB
+ pg_attribute_relid_attnum_index |       8 | 64 kB
+ pg_amop                         |       7 | 56 kB
+ pg_proc_oid_index               |       7 | 56 kB
+ pg_index                        |       6 | 48 kB
+ pg_amproc                       |       6 | 48 kB
+ pg_amop_opr_fam_index           |       5 | 40 kB
+(10 rows)
+
+ blks_hit | blks_read | pct_hit 
+----------+-----------+---------
+     8208 |    371437 |    2.16
+(1 row)
+

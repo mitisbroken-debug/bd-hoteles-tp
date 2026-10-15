@@ -1,0 +1,104 @@
+=== FRIA (solo shared_buffers vacio) ===
+SET
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=336568.88..336569.66 rows=3 width=50) (actual time=1144.656..1148.237 rows=3 loops=1)
+   Group Key: estado
+   Buffers: shared hit=18 read=185568
+   I/O Timings: shared read=220.396
+   ->  Gather Merge  (cost=336568.88..336569.58 rows=6 width=50) (actual time=1144.634..1148.214 rows=9 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=18 read=185568
+         I/O Timings: shared read=220.396
+         ->  Sort  (cost=335568.85..335568.86 rows=3 width=50) (actual time=1129.131..1129.132 rows=3 loops=3)
+               Sort Key: estado
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=18 read=185568
+               I/O Timings: shared read=220.396
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Partial HashAggregate  (cost=335568.80..335568.83 rows=3 width=50) (actual time=1129.100..1129.102 rows=3 loops=3)
+                     Group Key: estado
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared read=185568
+                     I/O Timings: shared read=220.396
+                     Worker 0:  Batches: 1  Memory Usage: 24kB
+                     Worker 1:  Batches: 1  Memory Usage: 24kB
+                     ->  Parallel Seq Scan on reserva  (cost=0.00..260568.40 rows=7500040 width=18) (actual time=0.021..338.614 rows=6000000 loops=3)
+                           Buffers: shared read=185568
+                           I/O Timings: shared read=220.396
+ Planning:
+   Buffers: shared hit=83 read=31
+   I/O Timings: shared read=0.310
+ Planning Time: 0.559 ms
+ JIT:
+   Functions: 21
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.371 ms, Inlining 0.000 ms, Optimization 0.713 ms, Emission 12.477 ms, Total 14.561 ms
+ Execution Time: 1161.715 ms
+(35 rows)
+
+=== CALIENTE ===
+SET
+                                                                      QUERY PLAN                                                                      
+------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=336568.88..336569.66 rows=3 width=50) (actual time=1223.859..1239.413 rows=3 loops=1)
+   Group Key: estado
+   Buffers: shared hit=114 read=185472
+   I/O Timings: shared read=237.284
+   ->  Gather Merge  (cost=336568.88..336569.58 rows=6 width=50) (actual time=1223.836..1239.388 rows=9 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=114 read=185472
+         I/O Timings: shared read=237.284
+         ->  Sort  (cost=335568.85..335568.86 rows=3 width=50) (actual time=1211.298..1211.299 rows=3 loops=3)
+               Sort Key: estado
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=114 read=185472
+               I/O Timings: shared read=237.284
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Partial HashAggregate  (cost=335568.80..335568.83 rows=3 width=50) (actual time=1211.262..1211.263 rows=3 loops=3)
+                     Group Key: estado
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared hit=96 read=185472
+                     I/O Timings: shared read=237.284
+                     Worker 0:  Batches: 1  Memory Usage: 24kB
+                     Worker 1:  Batches: 1  Memory Usage: 24kB
+                     ->  Parallel Seq Scan on reserva  (cost=0.00..260568.40 rows=7500040 width=18) (actual time=0.024..362.640 rows=6000000 loops=3)
+                           Buffers: shared hit=96 read=185472
+                           I/O Timings: shared read=237.284
+ Planning:
+   Buffers: shared hit=114
+ Planning Time: 0.343 ms
+ JIT:
+   Functions: 21
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 1.289 ms, Inlining 0.000 ms, Optimization 0.640 ms, Emission 11.993 ms, Total 13.921 ms
+ Execution Time: 1253.331 ms
+(34 rows)
+
+=== SIN PARALELISMO ===
+SET
+SET
+                                                         QUERY PLAN                                                          
+-----------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=545569.92..545569.96 rows=3 width=50) (actual time=3052.058..3052.060 rows=3 loops=1)
+   Group Key: estado
+   Batches: 1  Memory Usage: 24kB
+   Buffers: shared hit=192 read=185376
+   I/O Timings: shared read=214.167
+   ->  Seq Scan on reserva  (cost=0.00..365568.96 rows=18000096 width=18) (actual time=0.036..984.050 rows=18000000 loops=1)
+         Buffers: shared hit=192 read=185376
+         I/O Timings: shared read=214.167
+ Planning:
+   Buffers: shared hit=108
+ Planning Time: 0.233 ms
+ JIT:
+   Functions: 6
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 0.298 ms, Inlining 88.197 ms, Optimization 28.829 ms, Emission 17.815 ms, Total 135.138 ms
+ Execution Time: 3065.368 ms
+(16 rows)
+

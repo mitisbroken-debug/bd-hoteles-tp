@@ -1,0 +1,185 @@
+SHOW enable_partition_pruning;
+ enable_partition_pruning 
+--------------------------
+ on
+(1 row)
+
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva_part
+ WHERE fecha_inicio BETWEEN '2020-01-01' AND '2020-12-31';
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=33199.25..33199.26 rows=1 width=8) (actual time=94.551..96.172 rows=1 loops=1)
+   Buffers: shared read=18860
+   ->  Gather  (cost=33199.04..33199.25 rows=2 width=8) (actual time=94.459..96.165 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared read=18860
+         ->  Partial Aggregate  (cost=32199.04..32199.05 rows=1 width=8) (actual time=91.861..91.862 rows=1 loops=3)
+               Buffers: shared read=18860
+               ->  Parallel Seq Scan on reserva_p2020 reserva_part  (cost=0.00..30293.46 rows=762231 width=0) (actual time=0.019..66.749 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     Buffers: shared read=18860
+ Planning:
+   Buffers: shared hit=246 read=20
+ Planning Time: 1.983 ms
+ Execution Time: 96.226 ms
+(15 rows)
+
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva
+ WHERE fecha_inicio BETWEEN '2020-01-01' AND '2020-12-31';
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=300987.11..300987.12 rows=1 width=8) (actual time=440.616..446.349 rows=1 loops=1)
+   Buffers: shared hit=15832 read=169736 dirtied=48510 written=32678
+   ->  Gather  (cost=300986.90..300987.11 rows=2 width=8) (actual time=440.485..446.337 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=15832 read=169736 dirtied=48510 written=32678
+         ->  Partial Aggregate  (cost=299986.90..299986.91 rows=1 width=8) (actual time=429.109..429.110 rows=1 loops=3)
+               Buffers: shared hit=15832 read=169736 dirtied=48510 written=32678
+               ->  Parallel Seq Scan on reserva  (cost=0.00..298068.60 rows=767319 width=0) (actual time=2.716..407.859 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     Rows Removed by Filter: 5390215
+                     Buffers: shared hit=15832 read=169736 dirtied=48510 written=32678
+ Planning:
+   Buffers: shared hit=17 read=2
+ Planning Time: 0.144 ms
+ JIT:
+   Functions: 14
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.708 ms, Inlining 0.000 ms, Optimization 0.414 ms, Emission 7.635 ms, Total 8.757 ms
+ Execution Time: 462.677 ms
+(20 rows)
+
+CREATE INDEX idx_rp_huesped ON reserva_part (huesped_id);
+CREATE INDEX
+ANALYZE reserva_part;
+ANALYZE
+EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM reserva_part WHERE huesped_id = 12345;
+                                                                             QUERY PLAN                                                                             
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Append  (cost=0.43..245.67 rows=51 width=52) (actual time=0.043..0.319 rows=41 loops=1)
+   Buffers: shared hit=3 read=73
+   ->  Index Scan using reserva_p2015_huesped_id_idx on reserva_p2015 reserva_part_1  (cost=0.43..24.51 rows=5 width=50) (actual time=0.042..0.054 rows=3 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared hit=3 read=6
+   ->  Index Scan using reserva_p2016_huesped_id_idx on reserva_p2016 reserva_part_2  (cost=0.43..24.51 rows=5 width=50) (actual time=0.017..0.035 rows=7 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=10
+   ->  Index Scan using reserva_p2017_huesped_id_idx on reserva_p2017 reserva_part_3  (cost=0.43..24.51 rows=5 width=50) (actual time=0.011..0.014 rows=2 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=5
+   ->  Index Scan using reserva_p2018_huesped_id_idx on reserva_p2018 reserva_part_4  (cost=0.43..24.51 rows=5 width=50) (actual time=0.011..0.019 rows=4 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=7
+   ->  Index Scan using reserva_p2019_huesped_id_idx on reserva_p2019 reserva_part_5  (cost=0.43..24.51 rows=5 width=50) (actual time=0.012..0.023 rows=5 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=8
+   ->  Index Scan using reserva_p2020_huesped_id_idx on reserva_p2020 reserva_part_6  (cost=0.43..20.50 rows=4 width=50) (actual time=0.011..0.027 rows=7 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=10
+   ->  Index Scan using reserva_p2021_huesped_id_idx on reserva_p2021 reserva_part_7  (cost=0.43..24.51 rows=5 width=50) (actual time=0.022..0.043 rows=5 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=8
+   ->  Index Scan using reserva_p2022_huesped_id_idx on reserva_p2022 reserva_part_8  (cost=0.43..24.51 rows=5 width=50) (actual time=0.022..0.038 rows=4 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=7
+   ->  Index Scan using reserva_p2023_huesped_id_idx on reserva_p2023 reserva_part_9  (cost=0.43..24.51 rows=5 width=50) (actual time=0.022..0.027 rows=2 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=5
+   ->  Index Scan using reserva_p2024_huesped_id_idx on reserva_p2024 reserva_part_10  (cost=0.43..20.50 rows=4 width=50) (actual time=0.022..0.025 rows=2 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=5
+   ->  Index Scan using reserva_p2025_huesped_id_idx on reserva_p2025 reserva_part_11  (cost=0.29..8.30 rows=1 width=50) (actual time=0.006..0.006 rows=0 loops=1)
+         Index Cond: (huesped_id = 12345)
+         Buffers: shared read=2
+   ->  Seq Scan on reserva_p2026 reserva_part_12  (cost=0.00..0.00 rows=1 width=98) (actual time=0.002..0.002 rows=0 loops=1)
+         Filter: (huesped_id = 12345)
+   ->  Seq Scan on reserva_p_default reserva_part_13  (cost=0.00..0.00 rows=1 width=98) (actual time=0.001..0.001 rows=0 loops=1)
+         Filter: (huesped_id = 12345)
+ Planning:
+   Buffers: shared hit=425 read=19
+ Planning Time: 1.179 ms
+ Execution Time: 0.344 ms
+(43 rows)
+
+EXPLAIN SELECT count(*) FROM reserva_part WHERE EXTRACT(YEAR FROM fecha_inicio) = 2020;
+                                                                           QUERY PLAN                                                                            
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=265649.22..265649.23 rows=1 width=8)
+   ->  Gather  (cost=265649.00..265649.21 rows=2 width=8)
+         Workers Planned: 2
+         ->  Partial Aggregate  (cost=264649.00..264649.01 rows=1 width=8)
+               ->  Parallel Append  (cost=0.00..264555.25 rows=37501 width=0)
+                     ->  Seq Scan on reserva_p2026 reserva_part_12  (cost=0.00..0.00 rows=1 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Seq Scan on reserva_p_default reserva_part_13  (cost=0.00..0.00 rows=1 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2015_fecha_inicio_idx on reserva_p2015 reserva_part_1  (cost=0.43..27007.32 rows=3832 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2016_fecha_inicio_idx on reserva_p2016 reserva_part_2  (cost=0.43..26869.08 rows=3813 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2020_fecha_inicio_idx on reserva_p2020 reserva_part_6  (cost=0.43..26860.66 rows=3811 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2022_fecha_inicio_idx on reserva_p2022 reserva_part_8  (cost=0.43..26810.39 rows=3803 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2017_fecha_inicio_idx on reserva_p2017 reserva_part_3  (cost=0.43..26800.42 rows=3802 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2023_fecha_inicio_idx on reserva_p2023 reserva_part_9  (cost=0.43..26793.33 rows=3802 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2019_fecha_inicio_idx on reserva_p2019 reserva_part_5  (cost=0.43..26793.23 rows=3802 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2018_fecha_inicio_idx on reserva_p2018 reserva_part_4  (cost=0.43..26789.06 rows=3801 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2021_fecha_inicio_idx on reserva_p2021 reserva_part_7  (cost=0.43..26788.00 rows=3801 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2024_fecha_inicio_idx on reserva_p2024 reserva_part_10  (cost=0.43..22501.03 rows=3191 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+                     ->  Parallel Index Only Scan using reserva_p2025_fecha_inicio_idx on reserva_p2025 reserva_part_11  (cost=0.29..355.24 rows=58 width=0)
+                           Filter: (EXTRACT(year FROM fecha_inicio) = '2020'::numeric)
+ JIT:
+   Functions: 32
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+(34 rows)
+
+SET enable_partition_pruning = off;
+SET
+EXPLAIN SELECT count(*) FROM reserva_part
+ WHERE fecha_inicio BETWEEN '2020-01-01' AND '2020-12-31';
+                                                                        QUERY PLAN                                                                        
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=37054.79..37054.80 rows=1 width=8)
+   ->  Gather  (cost=37054.57..37054.78 rows=2 width=8)
+         Workers Planned: 2
+         ->  Partial Aggregate  (cost=36054.57..36054.58 rows=1 width=8)
+               ->  Parallel Append  (cost=0.00..34148.97 rows=762243 width=0)
+                     ->  Seq Scan on reserva_p2026 reserva_part_12  (cost=0.00..0.00 rows=1 width=0)
+                           Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Seq Scan on reserva_p_default reserva_part_13  (cost=0.00..0.00 rows=1 width=0)
+                           Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2015_fecha_inicio_idx on reserva_p2015 reserva_part_1  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2016_fecha_inicio_idx on reserva_p2016 reserva_part_2  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2017_fecha_inicio_idx on reserva_p2017 reserva_part_3  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2018_fecha_inicio_idx on reserva_p2018 reserva_part_4  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2019_fecha_inicio_idx on reserva_p2019 reserva_part_5  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2021_fecha_inicio_idx on reserva_p2021 reserva_part_7  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2022_fecha_inicio_idx on reserva_p2022 reserva_part_8  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2023_fecha_inicio_idx on reserva_p2023 reserva_part_9  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2024_fecha_inicio_idx on reserva_p2024 reserva_part_10  (cost=0.43..4.44 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Index Only Scan using reserva_p2025_fecha_inicio_idx on reserva_p2025 reserva_part_11  (cost=0.29..4.30 rows=1 width=0)
+                           Index Cond: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+                     ->  Parallel Seq Scan on reserva_p2020 reserva_part_6  (cost=0.00..30293.46 rows=762231 width=0)
+                           Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio <= '2020-12-31'::date))
+(31 rows)
+
+RESET enable_partition_pruning;
+RESET

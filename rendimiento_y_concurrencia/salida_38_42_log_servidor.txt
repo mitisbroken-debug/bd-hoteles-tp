@@ -1,0 +1,361 @@
+The files belonging to this database system will be owned by user "postgres".
+This user must also own the server process.
+
+The database cluster will be initialized with locale "en_US.utf8".
+The default database encoding has accordingly been set to "UTF8".
+The default text search configuration will be set to "english".
+
+Data page checksums are disabled.
+
+fixing permissions on existing directory /var/lib/postgresql/data ... ok
+creating subdirectories ... ok
+selecting dynamic shared memory implementation ... posix
+selecting default max_connections ... 100
+selecting default shared_buffers ... 128MB
+selecting default time zone ... Etc/UTC
+creating configuration files ... ok
+running bootstrap script ... ok
+performing post-bootstrap initialization ... ok
+syncing data to disk ... ok
+
+
+Success. You can now start the database server using:
+
+    pg_ctl -D /var/lib/postgresql/data -l logfile start
+
+initdb: warning: enabling "trust" authentication for local connections
+initdb: hint: You can change this by editing pg_hba.conf or using the option -A, or --auth-local and --auth-host, the next time you run initdb.
+waiting for server to start....2026-10-10 16:39:19.770 UTC [48] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-10 16:39:19.781 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-10 16:39:19.816 UTC [51] LOG:  database system was shut down at 2026-10-10 16:39:19 UTC
+2026-10-10 16:39:19.831 UTC [48] LOG:  database system is ready to accept connections
+ done
+server started
+CREATE DATABASE
+
+
+/usr/local/bin/docker-entrypoint.sh: running /docker-entrypoint-initdb.d/schema.sql
+CREATE EXTENSION
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+
+
+waiting for server to shut down...2026-10-10 16:39:20.417 UTC [48] LOG:  received fast shutdown request
+.2026-10-10 16:39:20.428 UTC [48] LOG:  aborting any active transactions
+2026-10-10 16:39:20.430 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
+2026-10-10 16:39:20.430 UTC [49] LOG:  shutting down
+2026-10-10 16:39:20.802 UTC [48] LOG:  database system is shut down
+ done
+server stopped
+
+PostgreSQL init process complete; ready for start up.
+
+2026-10-10 16:39:20.856 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-10 16:39:20.856 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-10 16:39:20.856 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-10 16:39:20.879 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-10 16:39:20.903 UTC [66] LOG:  database system was shut down at 2026-10-10 16:39:20 UTC
+2026-10-10 16:39:20.917 UTC [1] LOG:  database system is ready to accept connections
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-10-14 05:11:43.783 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-14 05:11:43.784 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-14 05:11:43.784 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-14 05:11:43.924 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-14 05:11:44.157 UTC [29] LOG:  database system was interrupted; last known up at 2026-10-10 16:44:28 UTC
+2026-10-14 05:11:58.274 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 14.11 s, current path: ./base/5/549
+2026-10-14 05:12:04.206 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 20.04 s, current path: ./base/5/13464
+2026-10-14 05:12:14.626 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 30.46 s, current path: ./base/5/2831
+2026-10-14 05:12:24.482 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 40.32 s, current path: ./base/5/3764
+2026-10-14 05:12:34.516 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 50.35 s, current path: ./base/4/3256
+2026-10-14 05:12:44.194 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 60.03 s, current path: ./base/16384/4156
+2026-10-14 05:12:49.604 UTC [29] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-10-14 05:12:49.858 UTC [29] LOG:  redo starts at 0/1A6E4F0
+2026-10-14 05:12:49.858 UTC [29] LOG:  invalid record length at 0/1A6E5D8: expected at least 24, got 0
+2026-10-14 05:12:49.858 UTC [29] LOG:  redo done at 0/1A6E5A0 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-10-14 05:12:51.491 UTC [1] LOG:  database system is ready to accept connections
+2026-10-14 05:26:26.215 UTC [61] ERROR:  duplicate key value violates unique constraint "tipo_habitacion_nombre_key"
+2026-10-14 05:26:26.215 UTC [61] DETAIL:  Key (nombre)=(Individual) already exists.
+2026-10-14 05:26:26.215 UTC [61] STATEMENT:  INSERT INTO tipo_habitacion (nombre, descripcion) VALUES
+	    ('Individual', 'Habitación para una persona'),
+	    ('Doble', 'Habitación para dos personas'),
+	    ('Triple', 'Habitación para tres personas'),
+	    ('Suite', 'Habitación superior con sala de estar'),
+	    ('Familiar', 'Habitación amplia para grupos familiares');
+2026-10-14 05:26:26.215 UTC [61] ERROR:  duplicate key value violates unique constraint "comodidad_nombre_key"
+2026-10-14 05:26:26.215 UTC [61] DETAIL:  Key (nombre)=(WiFi) already exists.
+2026-10-14 05:26:26.215 UTC [61] STATEMENT:  INSERT INTO comodidad (nombre) VALUES
+	    ('WiFi'), ('Aire acondicionado'), ('TV por cable'), ('Minibar'),
+	    ('Balcón'), ('Vista al mar'), ('Jacuzzi'), ('Caja fuerte'),
+	    ('Desayuno incluido'), ('Servicio a la habitación');
+2026-10-14 05:26:26.232 UTC [61] ERROR:  duplicate key value violates unique constraint "hotel_contacto_hotel_id_tipo_valor_key"
+2026-10-14 05:26:26.232 UTC [61] DETAIL:  Key (hotel_id, tipo, valor)=(1, telefono, +54 11 04000001) already exists.
+2026-10-14 05:26:26.232 UTC [61] STATEMENT:  INSERT INTO hotel_contacto (hotel_id, tipo, valor)
+	SELECT id, 'telefono', '+54 11 ' || lpad((4000000 + id)::text, 8, '0') FROM hotel
+	UNION ALL
+	SELECT id, 'email', 'contacto' || id || '@hotel.com' FROM hotel;
+2026-10-14 05:26:26.241 UTC [61] ERROR:  duplicate key value violates unique constraint "habitacion_hotel_id_numero_key"
+2026-10-14 05:26:26.241 UTC [61] DETAIL:  Key (hotel_id, numero)=(1, 0001) already exists.
+2026-10-14 05:26:26.241 UTC [61] STATEMENT:  INSERT INTO habitacion (hotel_id, tipo_habitacion_id, numero, piso, capacidad)
+	SELECT
+	    h.id,
+	    (floor(random() * 5) + 1)::bigint,
+	    lpad(n::text, 4, '0'),
+	    (n / 20) + 1,
+	    (floor(random() * 4) + 1)::smallint
+	FROM hotel h CROSS JOIN generate_series(1, 200) n;
+2026-10-14 05:26:26.572 UTC [61] ERROR:  duplicate key value violates unique constraint "huesped_documento_key"
+2026-10-14 05:26:26.572 UTC [61] DETAIL:  Key (documento)=(20000001) already exists.
+2026-10-14 05:26:26.572 UTC [61] STATEMENT:  INSERT INTO huesped (nombre, apellido, documento, fecha_nacimiento)
+	SELECT
+	    (ARRAY['Juan','María','Carlos','Ana','Luis','Laura','Diego','Sofía','Pedro','Lucía'])[floor(random()*10+1)],
+	    (ARRAY['Gómez','Fernández','Rodríguez','López','Martínez','García','Pérez','Sánchez','Romero','Díaz'])[floor(random()*10+1)],
+	    (20000000 + gs)::text,
+	    DATE '1950-01-01' + (random() * 25000)::int
+	FROM generate_series(1, 500000) gs;
+2026-10-14 05:26:26.574 UTC [61] ERROR:  duplicate key value violates unique constraint "huesped_contacto_huesped_id_tipo_valor_key"
+2026-10-14 05:26:26.574 UTC [61] DETAIL:  Key (huesped_id, tipo, valor)=(1, email, huesped1@mail.com) already exists.
+2026-10-14 05:26:26.574 UTC [61] STATEMENT:  INSERT INTO huesped_contacto (huesped_id, tipo, valor)
+	SELECT id, 'email', 'huesped' || id || '@mail.com' FROM huesped
+	UNION ALL
+	SELECT id, 'telefono', '+54 9 ' || lpad((1000000000 + id)::bigint::text, 10, '0') FROM huesped;
+2026-10-14 05:26:54.155 UTC [62] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:27:52.157 UTC [63] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:28:52.168 UTC [64] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:29:52.225 UTC [65] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:30:39.696 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:30:50.795 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:31:05.271 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:31:21.451 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:32:52.352 UTC [68] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:33:52.407 UTC [69] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:34:34.504 UTC [76] ERROR:  duplicate key value violates unique constraint "tipo_habitacion_nombre_key"
+2026-10-14 05:34:34.504 UTC [76] DETAIL:  Key (nombre)=(Individual) already exists.
+2026-10-14 05:34:34.504 UTC [76] STATEMENT:  INSERT INTO tipo_habitacion (nombre, descripcion) VALUES
+	    ('Individual', 'Habitación para una persona'),
+	    ('Doble', 'Habitación para dos personas'),
+	    ('Triple', 'Habitación para tres personas'),
+	    ('Suite', 'Habitación superior con sala de estar'),
+	    ('Familiar', 'Habitación amplia para grupos familiares');
+2026-10-14 05:34:34.505 UTC [76] ERROR:  duplicate key value violates unique constraint "comodidad_nombre_key"
+2026-10-14 05:34:34.505 UTC [76] DETAIL:  Key (nombre)=(WiFi) already exists.
+2026-10-14 05:34:34.505 UTC [76] STATEMENT:  INSERT INTO comodidad (nombre) VALUES
+	    ('WiFi'), ('Aire acondicionado'), ('TV por cable'), ('Minibar'),
+	    ('Balcón'), ('Vista al mar'), ('Jacuzzi'), ('Caja fuerte'),
+	    ('Desayuno incluido'), ('Servicio a la habitación');
+2026-10-14 05:34:34.516 UTC [76] ERROR:  duplicate key value violates unique constraint "hotel_contacto_hotel_id_tipo_valor_key"
+2026-10-14 05:34:34.516 UTC [76] DETAIL:  Key (hotel_id, tipo, valor)=(1, telefono, +54 11 04000001) already exists.
+2026-10-14 05:34:34.516 UTC [76] STATEMENT:  INSERT INTO hotel_contacto (hotel_id, tipo, valor)
+	SELECT id, 'telefono', '+54 11 ' || lpad((4000000 + id)::text, 8, '0') FROM hotel
+	UNION ALL
+	SELECT id, 'email', 'contacto' || id || '@hotel.com' FROM hotel;
+2026-10-14 05:34:34.527 UTC [76] ERROR:  duplicate key value violates unique constraint "habitacion_hotel_id_numero_key"
+2026-10-14 05:34:34.527 UTC [76] DETAIL:  Key (hotel_id, numero)=(1, 0001) already exists.
+2026-10-14 05:34:34.527 UTC [76] STATEMENT:  INSERT INTO habitacion (hotel_id, tipo_habitacion_id, numero, piso, capacidad)
+	SELECT
+	    h.id,
+	    (floor(random() * 5) + 1)::bigint,
+	    lpad(n::text, 4, '0'),
+	    (n / 20) + 1,
+	    (floor(random() * 4) + 1)::smallint
+	FROM hotel h CROSS JOIN generate_series(1, 200) n;
+2026-10-14 05:34:34.927 UTC [76] ERROR:  duplicate key value violates unique constraint "huesped_documento_key"
+2026-10-14 05:34:34.927 UTC [76] DETAIL:  Key (documento)=(20000001) already exists.
+2026-10-14 05:34:34.927 UTC [76] STATEMENT:  INSERT INTO huesped (nombre, apellido, documento, fecha_nacimiento)
+	SELECT
+	    (ARRAY['Juan','María','Carlos','Ana','Luis','Laura','Diego','Sofía','Pedro','Lucía'])[floor(random()*10+1)],
+	    (ARRAY['Gómez','Fernández','Rodríguez','López','Martínez','García','Pérez','Sánchez','Romero','Díaz'])[floor(random()*10+1)],
+	    (20000000 + gs)::text,
+	    DATE '1950-01-01' + (random() * 25000)::int
+	FROM generate_series(1, 500000) gs;
+2026-10-14 05:34:34.929 UTC [76] ERROR:  duplicate key value violates unique constraint "huesped_contacto_huesped_id_tipo_valor_key"
+2026-10-14 05:34:34.929 UTC [76] DETAIL:  Key (huesped_id, tipo, valor)=(1, email, huesped1@mail.com) already exists.
+2026-10-14 05:34:34.929 UTC [76] STATEMENT:  INSERT INTO huesped_contacto (huesped_id, tipo, valor)
+	SELECT id, 'email', 'huesped' || id || '@mail.com' FROM huesped
+	UNION ALL
+	SELECT id, 'telefono', '+54 9 ' || lpad((1000000000 + id)::bigint::text, 10, '0') FROM huesped;
+2026-10-14 05:35:11.433 UTC [61] ERROR:  could not create exclusion constraint "reserva_habitacion_id_daterange_excl"
+2026-10-14 05:35:11.433 UTC [61] DETAIL:  Key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-02)) conflicts with key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-08)).
+2026-10-14 05:35:11.433 UTC [61] STATEMENT:  ALTER TABLE reserva
+	    ADD CONSTRAINT reserva_habitacion_id_daterange_excl
+	    EXCLUDE USING gist (
+	        habitacion_id WITH =,
+	        daterange(fecha_inicio, fecha_fin, '[)') WITH &&
+	    ) WHERE (estado <> 'cancelada');
+2026-10-14 05:35:11.439 UTC [76] ERROR:  constraint "reserva_habitacion_id_daterange_excl" of relation "reserva" does not exist
+2026-10-14 05:35:11.439 UTC [76] STATEMENT:  ALTER TABLE reserva DROP CONSTRAINT reserva_habitacion_id_daterange_excl;
+2026-10-14 05:35:11.737 UTC [61] ERROR:  duplicate key value violates unique constraint "tarifa_reserva_id_key"
+2026-10-14 05:35:11.737 UTC [61] DETAIL:  Key (reserva_id)=(1) already exists.
+2026-10-14 05:35:11.737 UTC [61] STATEMENT:  INSERT INTO tarifa (reserva_id, monto, moneda, fecha_confirmacion)
+	SELECT id, round((50 + random() * 450)::numeric, 2), 'USD', fecha_creacion + (random() * interval '2 days')
+	FROM reserva
+	WHERE estado = 'confirmada';
+2026-10-14 05:35:26.864 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:35:46.456 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:36:52.494 UTC [79] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:37:52.526 UTC [80] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:38:52.581 UTC [81] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:39:52.591 UTC [82] LOG:  skipping vacuum of "reserva" --- lock not available
+2026-10-14 05:40:33.063 UTC [76] ERROR:  could not create exclusion constraint "reserva_habitacion_id_daterange_excl"
+2026-10-14 05:40:33.063 UTC [76] DETAIL:  Key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-02)) conflicts with key (habitacion_id, daterange(fecha_inicio, fecha_fin, '[)'::text))=(1, [2015-01-01,2015-01-08)).
+2026-10-14 05:40:33.063 UTC [76] STATEMENT:  ALTER TABLE reserva
+	    ADD CONSTRAINT reserva_habitacion_id_daterange_excl
+	    EXCLUDE USING gist (
+	        habitacion_id WITH =,
+	        daterange(fecha_inicio, fecha_fin, '[)') WITH &&
+	    ) WHERE (estado <> 'cancelada');
+2026-10-14 05:40:33.214 UTC [76] ERROR:  duplicate key value violates unique constraint "tarifa_reserva_id_key"
+2026-10-14 05:40:33.214 UTC [76] DETAIL:  Key (reserva_id)=(1) already exists.
+2026-10-14 05:40:33.214 UTC [76] STATEMENT:  INSERT INTO tarifa (reserva_id, monto, moneda, fecha_confirmacion)
+	SELECT id, round((50 + random() * 450)::numeric, 2), 'USD', fecha_creacion + (random() * interval '2 days')
+	FROM reserva
+	WHERE estado = 'confirmada';
+2026-10-14 05:47:42.621 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:47:56.921 UTC [27] HINT:  Consider increasing the configuration parameter "max_wal_size".
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2015" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2016" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2017" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2018" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2019" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2020" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2021" --- lock not available
+2026-10-14 05:48:52.969 UTC [126] LOG:  skipping vacuum of "reserva_p2022" --- lock not available
+2026-10-14 05:48:54.432 UTC [126] ERROR:  canceling autovacuum task
+2026-10-14 05:48:54.432 UTC [126] CONTEXT:  while scanning block 5018 of relation "public.reserva_p2023"
+	automatic vacuum of table "hoteles.public.reserva_p2023"
+2026-10-14 05:49:04.285 UTC [126] ERROR:  canceling autovacuum task
+2026-10-14 05:49:04.285 UTC [126] CONTEXT:  while scanning block 9125 of relation "public.reserva_p2024"
+	automatic vacuum of table "hoteles.public.reserva_p2024"
+2026-10-14 06:03:34.927 UTC [200] ERROR:  canceling statement due to lock timeout
+2026-10-14 06:03:34.927 UTC [200] CONTEXT:  while locking tuple (0,1) in relation "reserva"
+2026-10-14 06:03:34.927 UTC [200] STATEMENT:  SELECT * FROM reserva WHERE id = 1 FOR SHARE;
+2026-10-14 06:04:19.924 UTC [200] ERROR:  canceling statement due to lock timeout
+2026-10-14 06:04:19.924 UTC [200] CONTEXT:  while locking tuple (0,1) in relation "reserva"
+2026-10-14 06:04:19.924 UTC [200] STATEMENT:  SELECT * FROM reserva WHERE id = 1 FOR UPDATE;
+2026-10-14 06:05:23.905 UTC [200] ERROR:  canceling statement due to lock timeout
+2026-10-14 06:05:23.905 UTC [200] STATEMENT:  LOCK TABLE reserva IN ACCESS EXCLUSIVE MODE;
+2026-10-14 06:05:52.449 UTC [200] WARNING:  there is already a transaction in progress
+2026-10-14 06:06:40.849 UTC [200] ERROR:  canceling statement due to lock timeout at character 8
+2026-10-14 06:06:40.849 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:19:14.760 UTC [192] ERROR:  could not serialize access due to concurrent update
+2026-10-14 06:19:14.760 UTC [192] STATEMENT:  UPDATE test_aislamiento SET valor = 1 WHERE id = 2;
+2026-10-14 06:20:02.148 UTC [200] ERROR:  deadlock detected
+2026-10-14 06:20:02.148 UTC [200] DETAIL:  Process 200 waits for ShareLock on transaction 933; blocked by process 192.
+	Process 192 waits for ShareLock on transaction 934; blocked by process 200.
+	Process 200: UPDATE reserva SET estado = estado WHERE id = 1;
+	Process 192: UPDATE reserva SET estado = estado WHERE id = 2;
+2026-10-14 06:20:02.148 UTC [200] HINT:  See server log for query details.
+2026-10-14 06:20:02.148 UTC [200] CONTEXT:  while updating tuple (185567,5) in relation "reserva"
+2026-10-14 06:20:02.148 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:21:30.157 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-10-14 06:21:30.163 UTC [1] LOG:  parameter "log_lock_waits" changed to "on"
+2026-10-14 06:21:47.548 UTC [200] LOG:  process 200 still waiting for ShareLock on transaction 935 after 1000.103 ms
+2026-10-14 06:21:47.548 UTC [200] DETAIL:  Process holding the lock: 192. Wait queue: 200.
+2026-10-14 06:21:47.548 UTC [200] CONTEXT:  while updating tuple (185567,5) in relation "reserva"
+2026-10-14 06:21:47.548 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:22:32.738 UTC [227] ERROR:  syntax error at or near "<" at character 29
+2026-10-14 06:22:32.738 UTC [227] STATEMENT:  SELECT pg_terminate_backend(<pid_de_A>);
+2026-10-14 06:25:13.478 UTC [192] FATAL:  terminating connection due to administrator command
+2026-10-14 06:25:13.478 UTC [192] STATEMENT:  SELECT pg_terminate_backend(192);
+2026-10-14 06:25:13.478 UTC [200] LOG:  process 200 acquired ShareLock on transaction 935 after 206930.208 ms
+2026-10-14 06:25:13.478 UTC [200] CONTEXT:  while updating tuple (185567,5) in relation "reserva"
+2026-10-14 06:25:13.478 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:25:42.184 UTC [200] WARNING:  there is no transaction in progress
+2026-10-14 06:27:50.882 UTC [200] LOG:  process 200 still waiting for ShareLock on transaction 937 after 1000.093 ms
+2026-10-14 06:27:50.882 UTC [200] DETAIL:  Process holding the lock: 241. Wait queue: 200.
+2026-10-14 06:27:50.882 UTC [200] CONTEXT:  while updating tuple (185567,5) in relation "reserva"
+2026-10-14 06:27:50.882 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:28:37.834 UTC [227] ERROR:  syntax error at or near "<" at character 29
+2026-10-14 06:28:37.834 UTC [227] STATEMENT:  SELECT pg_terminate_backend(<el pid de A, solo el número>);
+2026-10-14 06:38:15.482 UTC [241] FATAL:  terminating connection due to administrator command
+2026-10-14 06:38:15.482 UTC [241] STATEMENT:  SELECT pg_terminate_backend(241);
+2026-10-14 06:38:15.482 UTC [200] LOG:  process 200 acquired ShareLock on transaction 937 after 625600.875 ms
+2026-10-14 06:38:15.482 UTC [200] CONTEXT:  while updating tuple (185567,5) in relation "reserva"
+2026-10-14 06:38:15.482 UTC [200] STATEMENT:  UPDATE reserva SET estado = estado WHERE id = 1;
+2026-10-14 06:39:38.779 UTC [200] ERROR:  syntax error at or near "ROLLBACK" at character 10
+2026-10-14 06:39:38.779 UTC [200] STATEMENT:  ROLLBACK
+	ROLLBACK;
+2026-10-14 06:39:45.409 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-10-14 06:39:45.422 UTC [1] LOG:  parameter "log_lock_waits" removed from configuration file, reset to default
+2026-10-14 06:44:37.500 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-10-14 06:44:37.501 UTC [1] LOG:  parameter "log_min_duration_statement" changed to "200"
+2026-10-14 06:44:44.245 UTC [34338] LOG:  duration: 1005.312 ms  statement: SELECT pg_sleep(1);
+2026-10-14 06:44:48.494 UTC [34338] LOG:  duration: 4249.315 ms  statement: SELECT * FROM reserva WHERE huesped_id = 12345;
+2026-10-14 06:45:26.672 UTC [34348] LOG:  duration: 332.317 ms  statement: EXPLAIN (ANALYZE, BUFFERS) SELECT * FROM reserva WHERE huesped_id = 12345;
+2026-10-14 06:46:08.373 UTC [34358] LOG:  duration: 6164.170 ms  statement: CREATE INDEX idx_reserva_huesped ON reserva (huesped_id);
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-10-14 17:36:03.509 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-14 17:36:03.517 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-14 17:36:03.517 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-14 17:36:03.664 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-14 17:36:03.783 UTC [29] LOG:  database system was interrupted; last known up at 2026-10-14 06:49:48 UTC
+2026-10-14 17:36:13.805 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 10.01 s, current path: ./base/5/6238
+2026-10-14 17:36:22.032 UTC [36] FATAL:  the database system is starting up
+2026-10-14 17:36:23.799 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 20.00 s, current path: ./base/1/3079_fsm
+2026-10-14 17:36:33.794 UTC [29] LOG:  syncing data directory (fsync), elapsed time: 30.00 s, current path: ./global/4182
+2026-10-14 17:36:34.541 UTC [29] LOG:  database system was not properly shut down; automatic recovery in progress
+2026-10-14 17:36:34.568 UTC [29] LOG:  redo starts at 2/A7741510
+2026-10-14 17:36:34.568 UTC [29] LOG:  invalid record length at 2/A77415F8: expected at least 24, got 0
+2026-10-14 17:36:34.568 UTC [29] LOG:  redo done at 2/A77415C0 system usage: CPU: user: 0.00 s, system: 0.00 s, elapsed: 0.00 s
+2026-10-14 17:36:34.808 UTC [1] LOG:  database system is ready to accept connections
+2026-10-14 17:36:50.642 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-10-14 17:36:50.642 UTC [1] LOG:  parameter "log_min_duration_statement" removed from configuration file, reset to default
+2026-10-14 17:39:00.386 UTC [1] LOG:  received fast shutdown request
+2026-10-14 17:39:00.397 UTC [1] LOG:  aborting any active transactions
+2026-10-14 17:39:00.399 UTC [1] LOG:  background worker "logical replication launcher" (PID 39) exited with exit code 1
+2026-10-14 17:39:00.399 UTC [27] LOG:  shutting down
+2026-10-14 17:39:00.482 UTC [1] LOG:  database system is shut down
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-10-14 17:39:01.118 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-14 17:39:01.118 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-14 17:39:01.118 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-14 17:39:01.141 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-14 17:39:01.165 UTC [29] LOG:  database system was shut down at 2026-10-14 17:39:00 UTC
+2026-10-14 17:39:01.179 UTC [1] LOG:  database system is ready to accept connections
+2026-10-15 03:30:31.597 UTC [1] LOG:  received SIGHUP, reloading configuration files
+2026-10-15 03:32:22.441 UTC [1] LOG:  received fast shutdown request
+2026-10-15 03:32:22.455 UTC [1] LOG:  aborting any active transactions
+2026-10-15 03:32:22.465 UTC [1] LOG:  background worker "logical replication launcher" (PID 32) exited with exit code 1
+2026-10-15 03:32:22.466 UTC [27] LOG:  shutting down
+2026-10-15 03:32:22.602 UTC [1] LOG:  database system is shut down
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-10-15 03:32:24.136 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-15 03:32:24.137 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-15 03:32:24.137 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-15 03:32:24.161 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-15 03:32:24.186 UTC [28] LOG:  database system was shut down at 2026-10-15 03:32:22 UTC
+2026-10-15 03:32:24.240 UTC [1] LOG:  database system is ready to accept connections
+2026-10-15 03:35:31.443 UTC [1] LOG:  received fast shutdown request
+2026-10-15 03:35:31.455 UTC [1] LOG:  aborting any active transactions
+2026-10-15 03:35:31.456 UTC [1] LOG:  background worker "logical replication launcher" (PID 31) exited with exit code 1
+2026-10-15 03:35:31.456 UTC [26] LOG:  shutting down
+2026-10-15 03:35:31.564 UTC [1] LOG:  database system is shut down
+
+PostgreSQL Database directory appears to contain a database; Skipping initialization
+
+2026-10-15 03:35:32.362 UTC [1] LOG:  starting PostgreSQL 16.15 (Debian 16.15-1.pgdg13+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit
+2026-10-15 03:35:32.363 UTC [1] LOG:  listening on IPv4 address "0.0.0.0", port 5432
+2026-10-15 03:35:32.363 UTC [1] LOG:  listening on IPv6 address "::", port 5432
+2026-10-15 03:35:32.386 UTC [1] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
+2026-10-15 03:35:32.412 UTC [29] LOG:  database system was shut down at 2026-10-15 03:35:31 UTC
+2026-10-15 03:35:32.427 UTC [1] LOG:  database system is ready to accept connections
+2026-10-15 04:00:57.814 UTC [282] ERROR:  could not resize shared memory segment "/PostgreSQL.554716094" to 67128704 bytes: No space left on device
+2026-10-15 04:00:57.814 UTC [282] STATEMENT:  VACUUM (ANALYZE, VERBOSE) reserva;
+2026-10-15 04:04:33.963 UTC [355] LOG:  skipping vacuum of "mv_reservas_hotel_mes" --- lock not available

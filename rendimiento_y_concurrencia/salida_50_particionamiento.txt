@@ -1,0 +1,177 @@
+Timing is on.
+CREATE TABLE reserva_part (LIKE reserva INCLUDING DEFAULTS INCLUDING CONSTRAINTS)
+  PARTITION BY RANGE (fecha_inicio);
+CREATE TABLE
+Time: 13.579 ms
+DO $$
+BEGIN
+  FOR y IN 2015..2026 LOOP
+    EXECUTE format('CREATE TABLE reserva_p%s PARTITION OF reserva_part FOR VALUES FROM (%L) TO (%L)',
+                   y, y||'-01-01', (y+1)||'-01-01');
+  END LOOP;
+END $$;
+DO
+Time: 20.784 ms
+CREATE TABLE reserva_p_default PARTITION OF reserva_part DEFAULT;
+CREATE TABLE
+Time: 6.040 ms
+INSERT INTO reserva_part SELECT * FROM reserva;
+INSERT 0 18000000
+Time: 44033.822 ms (00:44.034)
+ALTER TABLE reserva_part ADD PRIMARY KEY (id, fecha_inicio);
+ALTER TABLE
+Time: 61586.895 ms (01:01.587)
+CREATE INDEX idx_rp_fecha ON reserva_part (fecha_inicio);
+CREATE INDEX
+Time: 11822.163 ms (00:11.822)
+ANALYZE reserva_part;
+ANALYZE
+Time: 2814.977 ms (00:02.815)
+SELECT 'reserva' AS tabla, pg_size_pretty(pg_total_relation_size('reserva')) AS total
+UNION ALL SELECT 'reserva_part', pg_size_pretty(pg_total_relation_size('reserva_part'));
+    tabla     |  total  
+--------------+---------
+ reserva      | 1836 MB
+ reserva_part | 0 bytes
+(2 rows)
+
+Time: 1.500 ms
+SELECT relname, pg_size_pretty(pg_total_relation_size(oid)) AS tam
+FROM pg_class WHERE relname LIKE 'reserva_p%' AND relkind = 'r' ORDER BY relname;
+      relname      |   tam   
+-------------------+---------
+ reserva_p2015     | 216 MB
+ reserva_p2016     | 215 MB
+ reserva_p2017     | 214 MB
+ reserva_p2018     | 214 MB
+ reserva_p2019     | 214 MB
+ reserva_p2020     | 215 MB
+ reserva_p2021     | 214 MB
+ reserva_p2022     | 214 MB
+ reserva_p2023     | 214 MB
+ reserva_p2024     | 180 MB
+ reserva_p2025     | 2472 kB
+ reserva_p2026     | 16 kB
+ reserva_p_default | 16 kB
+(13 rows)
+
+Time: 5.325 ms
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva
+ WHERE fecha_inicio >= '2020-01-01' AND fecha_inicio < '2021-01-01';
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=300987.04..300987.05 rows=1 width=8) (actual time=387.386..390.988 rows=1 loops=1)
+   Buffers: shared read=185568
+   ->  Gather  (cost=300986.83..300987.04 rows=2 width=8) (actual time=387.230..390.970 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared read=185568
+         ->  Partial Aggregate  (cost=299986.83..299986.84 rows=1 width=8) (actual time=374.756..374.757 rows=1 loops=3)
+               Buffers: shared read=185568
+               ->  Parallel Seq Scan on reserva  (cost=0.00..298068.60 rows=767291 width=0) (actual time=2.543..353.250 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio < '2021-01-01'::date))
+                     Rows Removed by Filter: 5390215
+                     Buffers: shared read=185568
+ Planning:
+   Buffers: shared hit=7 read=2
+ Planning Time: 0.088 ms
+ JIT:
+   Functions: 14
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.813 ms, Inlining 0.000 ms, Optimization 0.445 ms, Emission 7.159 ms, Total 8.417 ms
+ Execution Time: 444.342 ms
+(20 rows)
+
+Time: 455.647 ms
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva
+ WHERE fecha_inicio >= '2020-01-01' AND fecha_inicio < '2021-01-01';
+                                                                 QUERY PLAN                                                                  
+---------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=300987.04..300987.05 rows=1 width=8) (actual time=427.645..431.536 rows=1 loops=1)
+   Buffers: shared hit=96 read=185472
+   ->  Gather  (cost=300986.83..300987.04 rows=2 width=8) (actual time=427.472..431.517 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=96 read=185472
+         ->  Partial Aggregate  (cost=299986.83..299986.84 rows=1 width=8) (actual time=413.286..413.287 rows=1 loops=3)
+               Buffers: shared hit=96 read=185472
+               ->  Parallel Seq Scan on reserva  (cost=0.00..298068.60 rows=767291 width=0) (actual time=2.282..389.300 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio < '2021-01-01'::date))
+                     Rows Removed by Filter: 5390215
+                     Buffers: shared hit=96 read=185472
+ Planning Time: 0.059 ms
+ JIT:
+   Functions: 14
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.644 ms, Inlining 0.000 ms, Optimization 0.406 ms, Emission 6.417 ms, Total 7.468 ms
+ Execution Time: 431.783 ms
+(18 rows)
+
+Time: 432.124 ms
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva_part
+ WHERE fecha_inicio >= '2020-01-01' AND fecha_inicio < '2021-01-01';
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=33199.25..33199.26 rows=1 width=8) (actual time=119.279..124.962 rows=1 loops=1)
+   Buffers: shared hit=1635 read=17225
+   ->  Gather  (cost=33199.04..33199.25 rows=2 width=8) (actual time=119.047..124.952 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=1635 read=17225
+         ->  Partial Aggregate  (cost=32199.04..32199.05 rows=1 width=8) (actual time=107.322..107.323 rows=1 loops=3)
+               Buffers: shared hit=1635 read=17225
+               ->  Parallel Seq Scan on reserva_p2020 reserva_part  (cost=0.00..30293.46 rows=762231 width=0) (actual time=0.022..81.025 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio < '2021-01-01'::date))
+                     Buffers: shared hit=1635 read=17225
+ Planning:
+   Buffers: shared hit=42 read=8
+ Planning Time: 0.379 ms
+ Execution Time: 124.992 ms
+(15 rows)
+
+Time: 125.703 ms
+EXPLAIN (ANALYZE, BUFFERS) SELECT count(*) FROM reserva_part
+ WHERE fecha_inicio >= '2020-01-01' AND fecha_inicio < '2021-01-01';
+                                                                          QUERY PLAN                                                                          
+--------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize Aggregate  (cost=33199.25..33199.26 rows=1 width=8) (actual time=97.140..101.163 rows=1 loops=1)
+   Buffers: shared hit=1731 read=17129
+   ->  Gather  (cost=33199.04..33199.25 rows=2 width=8) (actual time=97.040..101.157 rows=3 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=1731 read=17129
+         ->  Partial Aggregate  (cost=32199.04..32199.05 rows=1 width=8) (actual time=82.239..82.240 rows=1 loops=3)
+               Buffers: shared hit=1731 read=17129
+               ->  Parallel Seq Scan on reserva_p2020 reserva_part  (cost=0.00..30293.46 rows=762231 width=0) (actual time=0.020..60.271 rows=609785 loops=3)
+                     Filter: ((fecha_inicio >= '2020-01-01'::date) AND (fecha_inicio < '2021-01-01'::date))
+                     Buffers: shared hit=1731 read=17129
+ Planning:
+   Buffers: shared hit=8
+ Planning Time: 0.241 ms
+ Execution Time: 101.191 ms
+(15 rows)
+
+Time: 101.722 ms
+BEGIN;
+BEGIN
+Time: 0.467 ms
+DELETE FROM reserva WHERE fecha_inicio >= '2020-01-01' AND fecha_inicio < '2021-01-01';
+DELETE 1829354
+Time: 29970.224 ms (00:29.970)
+ROLLBACK;
+ROLLBACK
+Time: 0.171 ms
+BEGIN;
+BEGIN
+Time: 0.075 ms
+DROP TABLE reserva_p2020;
+DROP TABLE
+Time: 4.284 ms
+ROLLBACK;
+ROLLBACK
+Time: 0.092 ms
+ total_particionada 
+--------------------
+ 2112 MB
+(1 row)
+

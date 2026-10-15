@@ -1,0 +1,41 @@
+               config_file                
+------------------------------------------
+ /var/lib/postgresql/data/postgresql.conf
+(1 row)
+
+      data_directory      
+--------------------------
+ /var/lib/postgresql/data
+(1 row)
+
+              name               | setting | unit |       source       
+---------------------------------+---------+------+--------------------
+ autovacuum                      | on      |      | default
+ effective_cache_size            | 524288  | 8kB  | default
+ hash_mem_multiplier             | 2       |      | default
+ join_collapse_limit             | 8       |      | default
+ maintenance_work_mem            | 65536   | kB   | default
+ max_connections                 | 100     |      | configuration file
+ max_parallel_workers_per_gather | 2       |      | default
+ random_page_cost                | 4       |      | default
+ shared_buffers                  | 16384   | 8kB  | configuration file
+ temp_buffers                    | 1024    | 8kB  | default
+ temp_file_limit                 | -1      | kB   | default
+ wal_buffers                     | 512     | 8kB  | default
+ work_mem                        | 4096    | kB   | default
+(13 rows)
+
+listen_addresses = '*'
+max_connections = 100			# (change requires restart)
+shared_buffers = 128MB			# min 128kB
+dynamic_shared_memory_type = posix	# the default is usually the first option
+max_wal_size = 1GB
+min_wal_size = 80MB
+log_timezone = 'Etc/UTC'
+datestyle = 'iso, mdy'
+timezone = 'Etc/UTC'
+lc_messages = 'en_US.utf8'		# locale for system error message
+lc_monetary = 'en_US.utf8'		# locale for monetary formatting
+lc_numeric = 'en_US.utf8'		# locale for number formatting
+lc_time = 'en_US.utf8'			# locale for time formatting
+default_text_search_config = 'pg_catalog.english'
