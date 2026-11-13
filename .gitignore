@@ -1,3 +1,4 @@
 .env
 *.dump
 backups/
+cloudflared.exe
