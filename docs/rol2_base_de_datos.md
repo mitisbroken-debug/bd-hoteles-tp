@@ -177,5 +177,28 @@ Para cumplir con la contenerización y el aislamiento de todos los componentes d
 
 ---
 
-## 8. Punto 8 - [ En desarrollo]
-*(Aquí integraremos la información del punto 8 una vez que lo realicemos).*
+## 8. Punto 8 - CI/CD, Fallos y Mecanismos de Reversión
+
+### Pipeline Implementado
+Se configuró **GitHub Actions** para automatizar el proceso de integración continua (CI) y despliegue continuo (CD). Cada vez que se realiza un `push` o un Pull Request validado:
+1. Se descargan las dependencias y se clona el repositorio de forma aislada en contenedores limpios (`ubuntu-latest`).
+2. Se compilan y construyen las imágenes Docker del **Frontend** y el **Backend**.
+3. Si la compilación es exitosa, se autentica mediante tokens seguros y se publican las nuevas versiones en **Docker Hub**.
+
+### Control de Fallos y Validaciones
+* **Validación de código:** El pipeline se interrumpe automáticamente (falla) si el Dockerfile de alguna de las aplicaciones tiene errores de sintaxis, rompiendo el ciclo y evitando que código defectuoso llegue a producción.
+* **Aislamiento:** Las credenciales de acceso al registro de contenedores están protegidas mediante los *GitHub Secrets*, impidiendo su filtración en el historial de commits.
+
+### Procedimiento de Recuperación (Rollback)
+En caso de que una imagen subida mediante el pipeline presente errores críticos en producción:
+1. **Identificar la versión estable anterior** en el historial de etiquetas (tags) de Docker Hub o mediante los commits de Git.
+2. **Forzar el despliegue de la versión anterior** conectándose al servidor de destino y ejecutando:
+   ```bash
+   docker compose down
+   # Modificar temporalmente la versión en docker-compose.yml a una etiqueta anterior estable (ej: :v1.0.0)
+   docker compose up -d --pull always
+3. **Forzar el despliegue de la versión anterior** conectándose al servidor de destino y ejecutando:
+   ```bash
+   docker compose down
+   # Modificar temporalmente la versión en docker-compose.yml a una etiqueta anterior estable (ej: :v1.0.0 o el tag previo)
+   docker compose up -d --pull always
