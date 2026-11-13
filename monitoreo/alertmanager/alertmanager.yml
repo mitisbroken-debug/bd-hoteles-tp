@@ -1,0 +1,34 @@
+# Alertmanager: agrupa las alertas que dispara Prometheus y las manda a n8n.
+global:
+  # Si Prometheus deja de mandar una alerta, a los 5 min se considera resuelta.
+  resolve_timeout: 5m
+
+route:
+  receiver: n8n
+  # Una notificación por alerta y por nodo (no mezclar la principal con la réplica).
+  group_by: [alertname, instance]
+  group_wait: 30s       # espera 30 s por si llegan otras alertas del mismo grupo
+  group_interval: 5m    # cambios en un grupo ya avisado se mandan cada 5 min
+  repeat_interval: 4h   # si sigue sin resolverse, recordar cada 4 h
+
+receivers:
+  - name: n8n
+    webhook_configs:
+      # Webhook de n8n (punto 13). n8n corre fuera de este compose, en el puerto 5678.
+      - url: http://host.docker.internal:5678/webhook/alertas-prometheus
+        send_resolved: true
+
+inhibit_rules:
+  # Si la réplica está caída, no tiene sentido avisar además que está
+  # desconectada o atrasada: es la misma causa.
+  - source_matchers:
+      - alertname = ReplicaCaida
+    target_matchers:
+      - alertname =~ "ReplicaDesconectada|ReplicacionRetrasoAlto"
+  # Si la base principal está caída, /health devuelve 503 y salta ApiCaida;
+  # dejamos las dos porque son problemas distintos para el usuario, pero
+  # silenciamos ReplicaDesconectada (sin principal no hay a quién conectarse).
+  - source_matchers:
+      - alertname = BasePrincipalCaida
+    target_matchers:
+      - alertname = ReplicaDesconectada
