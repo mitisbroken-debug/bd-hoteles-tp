@@ -115,14 +115,14 @@ services:
       - "8090:80"
     networks:
       - red-hoteles
-
+      
 # ---------- Backend de la aplicación ----------
   backend:
     build: ./backend
     container_name: backend-hoteles
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - "3001:3000"
     environment:
       - DB_HOST=db-hoteles
       - DB_PORT=5432
@@ -134,7 +134,7 @@ services:
         condition: service_healthy
     networks:
       - red-hoteles
-
+      
   # ---------- Backups automaticos ----------
   db-backup:
     image: postgres:16
