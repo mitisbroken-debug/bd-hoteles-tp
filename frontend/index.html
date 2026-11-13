@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Red Hoteles - Sistema de Gestión y Reservas</title>
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #2563eb;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --border-color: #cbd5e1;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        header h1 {
+            color: var(--primary-color);
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+        header p {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+        .card {
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+            border-top: 4px solid var(--primary-color);
+        }
+        h2 {
+            color: var(--primary-color);
+            font-size: 1.2rem;
+            margin-top: 0;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 10px;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #334155;
+        }
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            font-size: 1rem;
+            background: #fff;
+            box-sizing: border-box;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: var(--secondary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+        }
+        .grid-habitaciones {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        .hab-card {
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+            background: #f8fafc;
+            transition: all 0.2s;
+        }
+        .hab-card:hover {
+            border-color: var(--secondary-color);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+        .hab-card h4 {
+            margin: 0 0 8px 0;
+            color: var(--primary-color);
+        }
+        .hab-card p {
+            margin: 4px 0;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+        .btn-hab {
+            background: var(--secondary-color);
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            width: 100%;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .btn-hab:hover {
+            background: var(--primary-color);
+        }
+        .btn-submit {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px;
+            width: 100%;
+            border-radius: 4px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 25px;
+        }
+        .btn-submit:hover {
+            background: #172554;
+        }
+        .voucher {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            padding: 25px;
+            margin-top: 25px;
+        }
+        .voucher-header {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 15px;
+            margin-bottom: 15px;
+        }
+        .voucher-header h3 {
+            color: var(--primary-color);
+            margin: 0;
+            font-size: 1.3rem;
+        }
+        .section-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            color: #64748b;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .voucher-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+        .voucher-box {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 4px;
+            border: 1px solid #e2e8f0;
+        }
+        .voucher-total {
+            background: #f1f5f9;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.95rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            border-top: 1px solid #cbd5e1;
+            border-radius: 0 0 6px 6px;
+        }
+        .alert-error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px;
+            border-radius: 4px;
+            margin-top: 15px;
+            border: 1px solid #f87171;
+        }
+        .seleccionada-badge {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            margin-top: 10px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>Red Hoteles Argentina</h1>
+        <p>Sistema Centralizado de Gestión y Reservas</p>
+    </header>
+
+    <!-- SECCIÓN 1: Selección de Hotel y Habitaciones -->
+    <div class="card">
+        <h2>1. Seleccionar Alojamiento</h2>
+        <label for="select-hotel">Hotel de Destino:</label>
+        <select id="select-hotel" onchange="cargarHabitaciones()">
+            <option value="">-- Cargando hoteles de la red --</option>
+        </select>
+
+        <div id="seleccion-actual" class="seleccionada-badge" style="display:none;"></div>
+
+        <h3 style="font-size: 1rem; color: #444; margin-top: 20px;">Habitaciones Disponibles:</h3>
+        <div id="grid-habitaciones" class="grid-habitaciones">
+            <span style="color: #777; font-style: italic; font-size: 0.9rem;">Seleccione un hotel para ver las unidades disponibles.</span>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: Datos del Huésped y Fechas -->
+    <div class="card">
+        <h2>2. Datos del Huésped y Estadía</h2>
+        <form id="form-reserva" onsubmit="crearReserva(event)">
+            
+            <input type="hidden" id="habitacion_id" required>
+
+            <div style="display: flex; gap: 15px;">
+                <div style="flex: 1;">
+                    <label for="nombre_huesped">Nombre y Apellido:</label>
+                    <input type="text" id="nombre_huesped" required placeholder="Ej: Fio Jimenez">
+                </div>
+                <div style="flex: 1;">
+                    <label for="email_huesped">Correo Electrónico:</label>
+                    <input type="email" id="email_huesped" required placeholder="fio@email.com">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 15px; margin-top: 5px;">
+                <div style="flex: 1;">
+                    <label for="fecha_inicio">Check-in (Fecha Inicio):</label>
+                    <input type="date" id="fecha_inicio" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="fecha_fin">Check-out (Fecha Fin):</label>
+                    <input type="date" id="fecha_fin" required>
+                </div>
+            </div>
+
+            <button type="submit" class="btn-submit">Confirmar y Emitir Comprobante</button>
+        </form>
+        
+        <div id="resultado-reserva"></div>
+    </div>
+</div>
+
+<script>
+    const API_URL = 'http://localhost:3001';
+
+    async function cargarHoteles() {
+        try {
+            const res = await fetch(`${API_URL}/api/hoteles`);
+            const hoteles = await res.json();
+            const select = document.getElementById('select-hotel');
+            select.innerHTML = '<option value="">-- Seleccione un hotel --</option>';
+            hoteles.forEach(h => {
+                select.innerHTML += `<option value="${h.id}">${h.nombre} (${h.ciudad}, ${h.pais})</option>`;
+            });
+        } catch (err) {
+            document.getElementById('select-hotel').innerHTML = '<option>Error al conectar con la API</option>';
+        }
+    }
+
+    async function cargarHabitaciones() {
+        const hotelId = document.getElementById('select-hotel').value;
+        const grid = document.getElementById('grid-habitaciones');
+        
+        if (!hotelId) {
+            grid.innerHTML = '<span style="color: #777; font-style: italic; font-size: 0.9rem;">Seleccione un hotel.</span>';
+            return;
+        }
+
+        try {
+            const res = await fetch(`${API_URL}/api/habitaciones?hotel_id=${hotelId}`);
+            const habitaciones = await res.json();
+            
+            if (habitaciones.length === 0) {
+                grid.innerHTML = '<p>No hay habitaciones disponibles en este hotel.</p>';
+                return;
+            }
+
+            let html = '';
+            habitaciones.slice(0, 12).forEach(hab => {
+                html += `
+                    <div class="hab-card">
+                        <h4>Habitación #${hab.numero}</h4>
+                        <p><strong>Tipo:</strong> ${hab.tipo || 'Estándar'}</p>
+                        <p><strong>Piso:</strong> ${hab.piso || '1'}</p>
+                        <p><strong>Capacidad:</strong> ${hab.capacidad} pers.</p>
+                        <button type="button" class="btn-hab" onclick="elegirHabitacion(${hab.id}, '${hab.numero}', '${hab.tipo || 'Estándar'}')">Seleccionar</button>
+                    </div>
+                `;
+            });
+            grid.innerHTML = html;
+        } catch (err) {
+            grid.innerHTML = '<p class="alert-error">Error al cargar las habitaciones.</p>';
+        }
+    }
+
+    function elegirHabitacion(id, numero, tipo) {
+        document.getElementById('habitacion_id').value = id;
+        const badge = document.getElementById('seleccion-actual');
+        badge.style.display = 'block';
+        badge.innerHTML = `✓ Habitación Seleccionada: #${numero} (${tipo})`;
+    }
+
+    async function crearReserva(e) {
+        e.preventDefault();
+        const habId = document.getElementById('habitacion_id').value;
+        const nombreHuesped = document.getElementById('nombre_huesped').value;
+        const emailHuesped = document.getElementById('email_huesped').value;
+        
+        if (!habId) {
+            alert('Por favor, selecciona primero una habitación haciendo clic en el botón "Seleccionar".');
+            return;
+        }
+
+        const randomHuespedId = Math.floor(Math.random() * 500000) + 1;
+
+        const data = {
+            habitacion_id: parseInt(habId),
+            huesped_id: randomHuespedId,
+            fecha_inicio: document.getElementById('fecha_inicio').value,
+            fecha_fin: document.getElementById('fecha_fin').value
+        };
+
+        const resultadoDiv = document.getElementById('resultado-reserva');
+        resultadoDiv.innerHTML = '<p style="text-align:center; color:#555; margin-top:15px;">Procesando reserva en el sistema...</p>';
+
+        try {
+            const res = await fetch(`${API_URL}/api/reservas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            const resultado = await res.json();
+
+            if (res.ok) {
+                resultadoDiv.innerHTML = `
+                    <div class="voucher">
+                        <div class="voucher-header">
+                            <div>
+                                <h3>COMPROBANTE DE RESERVA</h3>
+                                <p style="margin:2px 0 0 0; font-size:0.8rem; color:#666;">Red Hoteles Argentina - Infraestructura Docker</p>
+                            </div>
+                            <div style="text-align: right;">
+                                <strong style="color: var(--primary-color);">Reserva #${resultado.id}</strong><br>
+                                <span style="font-size:0.8rem; color:#16a34a; font-weight:bold;">Estado: ${resultado.estado.toUpperCase()}</span>
+                            </div>
+                        </div>
+
+                        <div class="voucher-grid">
+                            <div class="voucher-box">
+                                <div class="section-title">Huésped Titular</div>
+                                <strong>${nombreHuesped}</strong><br>
+                                <span style="font-size:0.85rem; color:#555;">${emailHuesped}</span>
+                            </div>
+                            <div class="voucher-box">
+                                <div class="section-title">Detalles de la Estadía</div>
+                                <strong>Check-in:</strong> ${resultado.fecha_inicio}<br>
+                                <strong>Check-out:</strong> ${resultado.fecha_fin}
+                            </div>
+                        </div>
+
+                        <div style="font-size: 0.9rem; margin-bottom: 15px; color: #444;">
+                            <strong>Alojamiento Asignado:</strong> Habitación ID #${resultado.habitacion_id} (Red de Hoteles)
+                        </div>
+
+                        <div class="voucher-total">
+                            Operación Exitosa ✓
+                        </div>
+                    </div>
+                `;
+            } else {
+                resultadoDiv.innerHTML = `<div class="alert-error"><strong>Error al reservar (${res.status}):</strong> ${resultado.error || 'Conflicto de fechas u operación inválida.'}</div>`;
+            }
+        } catch (err) {
+            resultadoDiv.innerHTML = '<div class="alert-error">Error de red al intentar conectar con el backend de contenedores.</div>';
+        }
+    }
+
+    cargarHoteles();
+</script>
+
+</body>
+</html>

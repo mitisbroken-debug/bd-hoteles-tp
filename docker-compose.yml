@@ -106,6 +106,35 @@ services:
     networks:
       - red-hoteles
 
+# ---------- Frontend web ----------
+  frontend:
+    build: ./frontend
+    container_name: frontend-hoteles
+    restart: unless-stopped
+    ports:
+      - "8090:80"
+    networks:
+      - red-hoteles
+
+# ---------- Backend de la aplicación ----------
+  backend:
+    build: ./backend
+    container_name: backend-hoteles
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=db-hoteles
+      - DB_PORT=5432
+      - DB_USER=${POSTGRES_USER}
+      - DB_PASSWORD=${POSTGRES_PASSWORD}
+      - DB_NAME=${POSTGRES_DB}
+    depends_on:
+      db-hoteles:
+        condition: service_healthy
+    networks:
+      - red-hoteles
+
   # ---------- Backups automaticos ----------
   db-backup:
     image: postgres:16

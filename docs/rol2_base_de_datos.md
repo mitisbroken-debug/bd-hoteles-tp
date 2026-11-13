@@ -154,3 +154,28 @@ docker compose up -d
 | pg_dump formato custom (-Fc) | Comprime y permite restaurar en paralelo con pg_restore -j |
 | Backups con retencion de 3 | Evita llenar el disco con copias de una base grande |
 | Red `red-hoteles` | Los servicios se comunican por nombre sin exponer todos los puertos |
+
+
+## Rol 3: DevOps e Infraestructura (Puntos 7, 8) 
+
+## Punto 7: Contenerización de la aplicación web (Frontend y Backend)
+
+Para cumplir con la contenerización y el aislamiento de todos los componentes del sistema, se estructuró la aplicación web de la siguiente manera:
+
+### Servicios añadidos en `docker-compose.yml`:
+| Servicio | Directorio / Build | Puerto | Para qué sirve |
+|---|---|---|---|
+| `backend` | `./backend` | `3001` | API REST en Node.js que procesa la lógica de negocio y conecta con PostgreSQL. |
+| `frontend` | `./frontend` | `8090:80` | Interfaz web interactiva ("Red Hoteles Argentina") servida mediante Nginx. |
+
+### Red y Comunicación:
+* Ambos servicios están conectados dentro de la red puente interna `red-hoteles`, lo que les permite comunicarse de forma aislada y segura con los nodos de base de datos (`db-hoteles` y `db-replica`).
+
+### Características de la Interfaz Web:
+* **Catálogo Visual de Alojamientos:** Permite seleccionar un hotel de la red y visualizar sus habitaciones disponibles en formato de tarjetas interactivas, eliminando la necesidad de ingresar IDs numéricos manuales.
+* **Emisión de Comprobantes (Vouchers):** Al confirmar la estadía ingresando los datos del huésped titular, la aplicación interactúa con la API para registrar la operación y emite un comprobante legible sincronizado directamente con la base de datos PostgreSQL.
+
+---
+
+## 8. Punto 8 - [ En desarrollo]
+*(Aquí integraremos la información del punto 8 una vez que lo realicemos).*
