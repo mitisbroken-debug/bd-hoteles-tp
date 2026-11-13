@@ -1,0 +1,22 @@
+{
+  "Servers": {
+    "1": {
+      "Name": "Hoteles - Primario",
+      "Group": "TP Hoteles",
+      "Host": "db-hoteles",
+      "Port": 5432,
+      "MaintenanceDB": "hoteles",
+      "Username": "hoteles_app",
+      "SSLMode": "prefer"
+    },
+    "2": {
+      "Name": "Hoteles - Replica",
+      "Group": "TP Hoteles",
+      "Host": "db-replica",
+      "Port": 5432,
+      "MaintenanceDB": "hoteles",
+      "Username": "hoteles_app",
+      "SSLMode": "prefer"
+    }
+  }
+}
