@@ -1,4 +1,9 @@
+# Rol 2 - Base de datos: primario + replica + pgAdmin + backups
+# Las credenciales NO van aca: se leen del archivo .env (que no se sube a GitHub).
+
 services:
+
+  # ---------- Nodo principal (lee y escribe) ----------
   db-hoteles:
     image: postgres:16
     container_name: db-hoteles
@@ -7,11 +12,140 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+    # Se escribe un pg_hba.conf propio para permitir que la replica se conecte
+    # por la red de Docker (el de la imagen no permite conexiones de replicacion remotas).
+    entrypoint:
+      - bash
+      - -c
+      - |
+        cat > /tmp/pg_hba.conf <<'HBA'
+        local   all             all                                     trust
+        host    all             all             127.0.0.1/32            trust
+        host    all             all             ::1/128                 trust
+        local   replication     all                                     trust
+        host    replication     all             127.0.0.1/32            trust
+        host    replication     all             ::1/128                 trust
+        host    all             all             all                     scram-sha-256
+        host    replication     all             all                     scram-sha-256
+        HBA
+        exec docker-entrypoint.sh "$$@"
+      - bash
+    command:
+      - postgres
+      - -c
+      - hba_file=/tmp/pg_hba.conf
+      - -c
+      - wal_level=replica
+      - -c
+      - max_wal_senders=10
+      - -c
+      - wal_keep_size=1GB
+      - -c
+      - hot_standby=on
     ports:
       - "5440:5432"
     volumes:
       - hoteles-data:/var/lib/postgresql/data
       - ./sql/esquema/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+    networks:
+      - red-hoteles
+
+  # ---------- Nodo replica (solo lectura) ----------
+  db-replica:
+    image: postgres:16
+    container_name: db-replica
+    restart: unless-stopped
+    user: postgres
+    depends_on:
+      db-hoteles:
+        condition: service_healthy
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    # Primera vez: clona el primario con pg_basebackup (-R deja la configuracion de replica).
+    # Siguientes veces: arranca directo como replica.
+    entrypoint:
+      - bash
+      - -c
+      - |
+        set -e
+        if [ ! -s "$$PGDATA/PG_VERSION" ]; then
+          echo "[replica] clonando el primario con pg_basebackup..."
+          pg_basebackup -h db-hoteles -p 5432 -U "$$POSTGRES_USER" -D "$$PGDATA" -R -X stream -P
+          chmod 700 "$$PGDATA"
+        fi
+        exec postgres -c hot_standby=on -c listen_addresses='*'
+    ports:
+      - "5442:5432"
+    volumes:
+      - replica-data:/var/lib/postgresql/data
+    networks:
+      - red-hoteles
+
+  # ---------- Cliente de administracion ----------
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin-hoteles
+    restart: unless-stopped
+    depends_on:
+      - db-hoteles
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+      - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
+    networks:
+      - red-hoteles
+
+  # ---------- Backups automaticos ----------
+  db-backup:
+    image: postgres:16
+    container_name: db-backup
+    restart: unless-stopped
+    depends_on:
+      db-hoteles:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_DB: ${POSTGRES_DB}
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-86400}
+      BACKUP_KEEP: ${BACKUP_KEEP:-3}
+    entrypoint:
+      - bash
+      - -c
+      - |
+        while true; do
+          F=/backups/hoteles_$$(date +%Y%m%d_%H%M%S).dump
+          echo "[backup] iniciando $$F"
+          if pg_dump -h db-hoteles -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -Fc -f "$$F"; then
+            echo "[backup] OK ($$(du -h "$$F" | cut -f1))"
+          else
+            echo "[backup] ERROR, se borra el archivo incompleto"
+            rm -f "$$F"
+          fi
+          ls -1t /backups/hoteles_*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
+          sleep "$$BACKUP_INTERVAL_SECONDS"
+        done
+    volumes:
+      - ./backups:/backups
+    networks:
+      - red-hoteles
+
+networks:
+  red-hoteles:
+    driver: bridge
 
 volumes:
   hoteles-data:
+  replica-data:
+  pgadmin-data:
