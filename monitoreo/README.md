@@ -40,7 +40,7 @@ Los 9 targets son:
 ```
         ┌────────────── red monitoreo_red ───────────────────────────────┐
         │                                                                │
- Grafana :3000 ──► Prometheus :9090 ──► Alertmanager :9093 ──► webhook n8n (punto 13)
+ Grafana :3000* ─► Prometheus :9090 ──► Alertmanager :9093 ──► webhook n8n (punto 13)
                         │  (pide métricas cada 15 s)
         ┌───────────────┼───────────────┬───────────────┬────────────────┐
   node-exporter     cAdvisor     postgres-exporter x2   blackbox-exporter
@@ -49,6 +49,7 @@ Los 9 targets son:
         └─────────────── red de la base: bd-hoteles-tp_red-hoteles ──────┘
                                   db-hoteles, db-replica, api-hoteles
 ```
+\* 3000 es el puerto por defecto en la PC; se cambia con `GRAFANA_PORT` (ver "Puertos y acceso").
 
 Los 8 contenedores:
 
@@ -105,6 +106,14 @@ no los probamos.**
    cp .env.example .env
    ```
    Completar la clave de Grafana, copiar `POSTGRES_USER`, `POSTGRES_PASSWORD` y `POSTGRES_DB` del `.env` de la raíz y poner en `RED_HOTELES` el nombre de la red del paso 2.
+
+   **Si el puerto 3000 de la PC está ocupado** (por ejemplo, el servicio `backend` del
+   `docker-compose.yml` de la raíz publica el 3000), cambiar `GRAFANA_PORT` en el `.env`, por
+   ejemplo `GRAFANA_PORT=3002`. Para ver si el 3000 está libre:
+   ```bash
+   docker ps --format "{{.Names}} {{.Ports}}"
+   ```
+   (buscar `:3000->`; en Windows también `netstat -ano | findstr :3000`).
 4. Levantar (crea los 8 contenedores):
    ```bash
    docker compose up -d
@@ -122,17 +131,24 @@ un simple POST sin login.
 
 | Servicio | URL | Acceso |
 |---|---|---|
-| Grafana | http://localhost:3000 | Usuario y clave del `monitoreo/.env`. Sin registro libre ni acceso anónimo. |
+| Grafana | http://127.0.0.1:3000 (o `http://127.0.0.1:<GRAFANA_PORT>`) | Usuario y clave del `monitoreo/.env`. Sin registro libre ni acceso anónimo. |
 | Prometheus | http://localhost:9090 | Publicado solo en `127.0.0.1`. |
 | Alertmanager | http://localhost:9093 | Publicado solo en `127.0.0.1`. |
 | Exportadores (5 contenedores) | No tienen | Sin puertos publicados: solo Prometheus llega a ellos por la red interna de Docker. |
+
+**Si el 3000 está ocupado:** poner otro puerto en `GRAFANA_PORT` del `monitoreo/.env` (por
+ejemplo `GRAFANA_PORT=3002`), recrear solo Grafana con `docker compose up -d grafana` y entrar por
+`http://127.0.0.1:3002`. Es **http, no https**: Grafana no tiene certificado configurado y el
+navegador no va a abrir `https://127.0.0.1:3002`. Esto solo cambia el puerto de la PC: adentro
+Grafana sigue en el 3000 y Prometheus lo sigue leyendo como `grafana:3000`. Probamos que la
+variable funciona con el valor 3000; con otro puerto no lo probamos.
 
 Cómo quedan restringidas las interfaces administrativas:
 - **Prometheus y Alertmanager no tienen login**, por eso se publican solo en `127.0.0.1`
   (se ve en `docker ps`: `127.0.0.1:9090->9090/tcp` y `127.0.0.1:9093->9093/tcp`). Con eso no
   deberían ser accesibles desde otra máquina de la red; **no lo probamos desde otra PC**.
 - **Grafana** pide usuario y clave: si se entra a la API sin login devuelve `401` (probado con
-  `curl http://127.0.0.1:3000/api/search`). Tiene desactivados el registro de usuarios
+  `curl http://127.0.0.1:3000/api/search`; con otro `GRAFANA_PORT`, cambiar el puerto). Tiene desactivados el registro de usuarios
   (`GF_USERS_ALLOW_SIGN_UP=false`) y el acceso anónimo (`GF_AUTH_ANONYMOUS_ENABLED=false`).
   Por defecto también se publica solo en `127.0.0.1`; si hay que mostrarlo desde otra PC se
   cambia `GRAFANA_BIND=0.0.0.0` en el `.env` (no probado).
@@ -207,7 +223,7 @@ webhook de n8n (punto 13), con `send_resolved: true` para avisar también cuando
 
 ## Prueba de alerta (para la demo)
 
-1. Abrir Grafana (dashboard propio, fila *Alertas*), http://localhost:9090/alerts y http://localhost:9093.
+1. Abrir Grafana en http://127.0.0.1:3000 (o el `GRAFANA_PORT` elegido; dashboard propio, fila *Alertas*), http://localhost:9090/alerts y http://localhost:9093.
 2. Tirar la API:
    ```bash
    docker stop api-hoteles

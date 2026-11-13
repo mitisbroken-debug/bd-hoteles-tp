@@ -71,8 +71,11 @@ services:
       GF_NEWS_NEWS_FEED_ENABLED: "false"
       # Al entrar se abre directamente nuestro dashboard.
       GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/propios/hoteles-vision-general.json
+    # Puerto del host configurable (GRAFANA_PORT, por defecto 3000) por si el 3000
+    # ya lo usa otro servicio. Adentro del contenedor Grafana escucha siempre en
+    # el 3000, que es el que usa Prometheus por la red interna (grafana:3000).
     ports:
-      - "${GRAFANA_BIND:-127.0.0.1}:3000:3000"
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/etc/grafana/dashboards:ro
