@@ -1,0 +1,27 @@
+# API de reservas. Se levanta desde la raiz del repo con:
+#   docker compose -f backend/docker-compose.yml --env-file .env up -d --build
+# Se conecta a la red de la base de datos (la crea el docker-compose.yml de la raiz).
+
+services:
+  api-hoteles:
+    build: .
+    container_name: api-hoteles
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_HOST_PRIMARY: db-hoteles
+      DB_HOST_REPLICA: db-replica
+      DB_PORT: 5432
+      DB_USER: ${POSTGRES_USER}
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      DB_NAME: ${POSTGRES_DB}
+      CORS_ORIGIN: ${CORS_ORIGIN:-*}
+    ports:
+         - "3001:3000"
+    networks:
+      - red-hoteles
+
+networks:
+  red-hoteles:
+    external: true
+    name: bd-hoteles-tp_red-hoteles
