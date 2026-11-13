@@ -1,0 +1,22 @@
+# Grafana carga solos los dashboards que estén en estas carpetas.
+apiVersion: 1
+
+providers:
+  # Nuestro dashboard con lo que pide la consigna.
+  - name: hoteles
+    folder: Hoteles
+    type: file
+    disableDeletion: true
+    # Se editan en el JSON del repo, no desde la interfaz.
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards/propios
+
+  # Dashboards de la comunidad (grafana.com), para ver más detalle.
+  - name: comunidad
+    folder: Comunidad
+    type: file
+    disableDeletion: true
+    allowUiUpdates: false
+    options:
+      path: /etc/grafana/dashboards/comunidad
