@@ -40,6 +40,8 @@ services:
       - "127.0.0.1:9093:9093"
     volumes:
       - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      # Token del webhook de n8n (carpeta ignorada por git, la crea n8n/preparar.ps1).
+      - ./alertmanager/secretos:/etc/alertmanager/secretos:ro
       - alertmanager-data:/alertmanager
     # En Docker Desktop host.docker.internal ya existe; en Linux hace falta esta línea
     # para que el webhook llegue al n8n que corre en la máquina.

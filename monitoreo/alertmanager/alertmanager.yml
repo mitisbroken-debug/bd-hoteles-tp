@@ -17,6 +17,13 @@ receivers:
       # Webhook de n8n (punto 13). n8n corre fuera de este compose, en el puerto 5678.
       - url: http://host.docker.internal:5678/webhook/alertas-prometheus
         send_resolved: true
+        # n8n solo acepta alertas que traigan este token (cabecera Authorization: Bearer ...).
+        # El token no está escrito acá: se lee de un archivo que no se sube a GitHub
+        # y que crea n8n/preparar.ps1.
+        http_config:
+          authorization:
+            type: Bearer
+            credentials_file: /etc/alertmanager/secretos/webhook_token
 
 inhibit_rules:
   # Si la réplica está caída, no tiene sentido avisar además que está

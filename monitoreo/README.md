@@ -119,6 +119,9 @@ no los probamos.**
    docker compose up -d
    ```
 5. Comprobar que los **9 targets** están UP en http://localhost:9090/targets.
+6. Para que las alertas lleguen a n8n hace falta el token del webhook. Lo crea
+   `n8n/preparar.ps1` (ver [`n8n/README.md`](../n8n/README.md)). Si se ejecuta después de
+   haber levantado el monitoreo, alcanza con `docker compose up -d alertmanager`.
 
 Si se cambia `prometheus.yml` o `alertas.yml`, se recarga sin reiniciar con (probado):
 ```bash
@@ -218,8 +221,12 @@ y si la principal está caída no se avisa que la réplica está desconectada (e
 
 Las alertas se mandan a `http://host.docker.internal:5678/webhook/alertas-prometheus`, que es el
 webhook de n8n (punto 13), con `send_resolved: true` para avisar también cuando se resuelven.
-**Pendiente:** n8n todavía no está conectado. Mientras tanto, Alertmanager registra en su log
-`Notify attempt failed ... connection refused` y reintenta (lo vimos en la prueba).
+n8n solo acepta alertas que traigan un token en la cabecera `Authorization: Bearer ...`
+(la consigna pide webhooks autenticados). Alertmanager lo lee del archivo
+`alertmanager/secretos/webhook_token`, que no se sube a GitHub y que crea `n8n/preparar.ps1`.
+Si ese archivo falta o n8n está apagado, Alertmanager registra `Notify attempt failed` en su
+log y reintenta; las alertas igual se ven en Prometheus, Alertmanager y Grafana.
+Qué hace n8n con cada alerta está en [`n8n/README.md`](../n8n/README.md).
 
 ## Prueba de alerta (para la demo)
 
@@ -301,9 +308,9 @@ curl -s http://localhost:9093/api/v2/alerts
   autenticación en modo multi-target, que no usamos), y Grafana dice que no encuentra
   `provisioning/plugins` y `provisioning/alerting` (no provisionamos plugins ni alertas de
   Grafana: las alertas las maneja Prometheus). Con esos avisos los 9 targets igual están UP.
-- **Webhook a n8n (pendiente):** queda configurado pero n8n se conecta en el punto 13. Hasta
-  entonces las notificaciones fallan con `connection refused` (las alertas igual se ven en
-  Prometheus, Alertmanager y Grafana).
+- **Webhook a n8n:** depende de que n8n (punto 13) esté levantado y de que exista el archivo
+  del token. Si no, las notificaciones fallan con `connection refused` o `403` (las alertas
+  igual se ven en Prometheus, Alertmanager y Grafana).
 
 ## Pendiente con Brian (base de datos)
 
