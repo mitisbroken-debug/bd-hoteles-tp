@@ -18,7 +18,7 @@ services:
     container_name: mantis-web
     restart: always
     ports:
-      - "8081:80"
+      - "9081:80"
     depends_on:
       - mantis-db
     networks:
