@@ -1,0 +1,765 @@
+{
+  "id": "hia13Backups0002",
+  "name": "HIA 2 - Verificación de backups",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "days",
+              "daysInterval": 1,
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "edfd55f6-7228-57b2-918a-44ab2c98694d",
+      "name": "Todos los días 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        200
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f98cc6ec-f9cc-5003-8b3c-4881524124e9",
+      "name": "Probar ahora",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "verificar-backups",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "6d83c9ba-c2cf-58b6-92b1-0b24746010dd",
+      "name": "Pedido autenticado",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        600
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hiaWebhookAlertas",
+          "name": "Webhooks de n8n (token)"
+        }
+      },
+      "webhookId": "aefb2fea-cc41-5fef-8e08-e93ecc162038"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9562dfd1-ebc1-5b2d-a526-60d769620630",
+              "name": "mailRemitente",
+              "value": "={{ $env.MAIL_REMITENTE }}",
+              "type": "string"
+            },
+            {
+              "id": "ba1b7916-ccb5-5d55-9af9-45aeb99c8af5",
+              "name": "mailDestino",
+              "value": "={{ $env.MAIL_DESTINO }}",
+              "type": "string"
+            },
+            {
+              "id": "1fa02101-174f-5652-b325-31d69635cb44",
+              "name": "maxHoras",
+              "value": "={{ Number($env.BACKUP_MAX_HORAS) || 26 }}",
+              "type": "number"
+            },
+            {
+              "id": "3badf4b0-fb63-561d-bc05-9156343be44a",
+              "name": "minBytes",
+              "value": "={{ Number($env.BACKUP_MIN_BYTES) || 1024 }}",
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "f7d75cc6-91b1-556d-9e8b-da12ff77fad1",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM verificar_ultimo_backup();",
+        "options": {}
+      },
+      "id": "69b066e9-b31e-5793-9926-b1d9c70b54a7",
+      "name": "Buscar y revisar el último backup",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        440,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Decide si el último backup sirve. Cuatro controles: existe, se puede leer,\n// no está vacío y no es viejo (el servicio db-backup hace una copia cada 24 h).\nconst cfg = $('Configuración').first().json;\nconst b = $input.first().json;\n\nconst maxHoras = Number(cfg.maxHoras) || 26;\nconst minBytes = Number(cfg.minBytes) || 1024;\nconst bytes = b.bytes == null ? null : Number(b.bytes);\nconst horas = b.antiguedad_horas == null ? null : Number(b.antiguedad_horas);\n\nlet estado = 'ok';\nlet detalle = '';\nif (!b.archivo) {\n  estado = 'sin_backup';\n  detalle = 'No hay ningún backup en la carpeta.';\n} else if (b.legible !== true) {\n  estado = 'ilegible';\n  detalle = 'pg_restore no pudo leer el archivo: ' + (b.detalle || 'sin detalle');\n} else if (bytes < minBytes) {\n  estado = 'chico';\n  detalle = 'El archivo pesa ' + bytes + ' bytes y el mínimo aceptado es ' + minBytes + '.';\n} else if (horas > maxHoras) {\n  estado = 'viejo';\n  detalle = 'El último backup tiene ' + horas + ' h y el máximo aceptado es ' + maxHoras\n          + ' h: el servicio de backup no está generando copias nuevas.';\n} else {\n  detalle = 'Archivo correcto: ' + b.objetos + ' objetos, ' + bytes + ' bytes, ' + horas + ' h de antigüedad.';\n}\n\nreturn [{\n  json: {\n    paraBase: JSON.stringify({\n      archivo: b.archivo || null,\n      bytes,\n      modificado: b.modificado || null,\n      antiguedad_horas: horas,\n      legible: b.legible === true,\n      objetos: b.objetos == null ? null : Number(b.objetos),\n      estado,\n      detalle,\n      // La restauración es una acción delicada: solo se hace si una persona la aprueba.\n      aprobacion: estado === 'ok' ? 'pendiente' : 'no_corresponde',\n      ejecucion_n8n: $execution.id,\n    }),\n  },\n}];\n"
+      },
+      "id": "2e411a4d-14dd-56b4-be2c-17a120f5f0ee",
+      "name": "Evaluar backup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO verificaciones_backup\n       (archivo, bytes, modificado, antiguedad_horas, legible, objetos, estado, detalle, aprobacion, ejecucion_n8n)\nSELECT r.archivo, r.bytes, r.modificado, r.antiguedad_horas, r.legible, r.objetos, r.estado, r.detalle,\n       r.aprobacion, r.ejecucion_n8n\n  FROM jsonb_populate_record(NULL::verificaciones_backup, $1::jsonb) r\nRETURNING *;",
+        "options": {
+          "queryReplacement": "={{ $json.paraBase }}"
+        }
+      },
+      "id": "bb03932a-012e-5e5a-9657-c435a0dc1f87",
+      "name": "Guardar verificación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "b01f328e-4ee4-5d3e-93a6-d0c90f5a5468",
+              "leftValue": "={{ String($json.estado || '') }}",
+              "rightValue": "ok",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "168df0ba-6381-5415-98f5-3065c888b873",
+      "name": "¿Backup correcto?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.mailRemitente }}",
+        "toEmail": "={{ $('Configuración').first().json.mailDestino }}",
+        "subject": "=[Hoteles] ERROR en el backup: {{ $json.estado }}",
+        "emailFormat": "html",
+        "html": "=<h2 style=\"color:#b00020\">El backup de la base de hoteles tiene un problema</h2>\n<p><b>{{ $json.detalle }}</b></p>\n<ul>\n<li>Estado: {{ $json.estado }}</li>\n<li>Archivo: {{ $json.archivo || 'ninguno' }}</li>\n<li>Tamaño: {{ $json.bytes || 0 }} bytes</li>\n<li>Antigüedad: {{ $json.antiguedad_horas || '-' }} h</li>\n<li>Verificación n.º {{ $json.id }}</li>\n</ul>\n<p>Qué revisar: <code>docker logs db-backup</code> y la carpeta <code>backups/</code>.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "5287965a-6912-5e6c-85a7-2de9b23d30bf",
+      "name": "Avisar error de backup",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        520
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "hiaSmtpAvisos",
+          "name": "SMTP de avisos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.mailRemitente }}",
+        "toEmail": "={{ $('Configuración').first().json.mailDestino }}",
+        "subject": "=[Hoteles] Backup correcto. ¿Aprobás la restauración de prueba?",
+        "emailFormat": "html",
+        "html": "=<h2>Backup verificado: {{ $json.archivo }}</h2>\n<p>{{ $json.detalle }}</p>\n<p>Para comprobar que la copia sirve hay que restaurarla. La restauración se hace en una base aparte (<code>restauracion_prueba</code>), no toca la base de producción. Como es una acción que consume recursos, necesita la aprobación de una persona.</p>\n<p style=\"font-size:16px\">\n<a href=\"{{ $execution.resumeUrl + ($execution.resumeUrl.includes('?') ? '&' : '?') + 'decision=aprobar' }}\">✅ APROBAR la restauración de prueba</a><br><br>\n<a href=\"{{ $execution.resumeUrl + ($execution.resumeUrl.includes('?') ? '&' : '?') + 'decision=rechazar' }}\">❌ RECHAZAR</a>\n</p>\n<p>Si nadie responde en 30 minutos, no se restaura y queda registrado como \"sin respuesta\". Los enlaces funcionan desde la PC donde corre n8n.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "039b90d4-9440-55a0-bbfd-1d77f4abc142",
+      "name": "Pedir aprobación para restaurar",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        200
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "hiaSmtpAvisos",
+          "name": "SMTP de avisos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "GET",
+        "responseMode": "onReceived",
+        "limitWaitTime": true,
+        "limitType": "afterTimeInterval",
+        "resumeAmount": 30,
+        "resumeUnit": "minutes",
+        "options": {}
+      },
+      "id": "00bbd694-ec54-5597-9e10-8751d6880dc6",
+      "name": "Esperar la decisión",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        120
+      ],
+      "webhookId": "228d6a21-abeb-5703-97e0-a3235c56b26f"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "31e2488c-cb7d-5acc-80bf-aca24b5b1499",
+              "leftValue": "={{ String(($json.query || {}).decision || '') }}",
+              "rightValue": "aprobar",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c6e9b0ff-5f5f-5b0b-9ca8-cd10d829b0a7",
+      "name": "¿Aprobó?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1760,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM restaurar_backup($1);",
+        "options": {
+          "queryReplacement": "={{ $('Guardar verificación').first().json.archivo }}"
+        }
+      },
+      "id": "67b3ec7a-98e8-5ed4-9648-37ba28028a97",
+      "name": "Restaurar en la base de prueba",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1980,
+        20
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE verificaciones_backup v\n   SET aprobacion = 'aprobada',\n       restauracion = CASE WHEN (s.x->>'ok')::boolean THEN 'ok' ELSE 'error' END,\n       tablas_restauradas = (s.x->>'tablas')::integer,\n       filas_reserva = (s.x->>'filas_reserva')::bigint,\n       duracion_seg = (s.x->>'segundos')::numeric,\n       detalle = v.detalle || ' | ' || COALESCE(s.x->>'detalle', '')\n  FROM (SELECT $1::jsonb AS x) s\n WHERE v.id = (s.x->>'id')::bigint\nRETURNING v.*;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('Guardar verificación').first().json.id, ok: $json.ok, tablas: $json.tablas, filas_reserva: $json.filas_reserva, segundos: $json.segundos, detalle: $json.detalle }) }}"
+        }
+      },
+      "id": "d04e470c-428f-52b4-87d5-7cfda5a02d69",
+      "name": "Guardar resultado",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2200,
+        -60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH s AS (SELECT $1::jsonb AS x),\n     e AS (INSERT INTO errores_flujos (flujo, tarea, detalle, ejecucion_n8n)\n           SELECT 'Verificación de backups', 'Restaurar en la base de prueba', left(x->>'detalle', 1000), x->>'ejecucion' FROM s)\nUPDATE verificaciones_backup v\n   SET aprobacion = 'aprobada', restauracion = 'error',\n       detalle = v.detalle || ' | La restauración falló: ' || left(COALESCE(s.x->>'detalle', ''), 300)\n  FROM s\n WHERE v.id = (s.x->>'id')::bigint\nRETURNING v.*;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('Guardar verificación').first().json.id, detalle: ($json.error && $json.error.message) || $json.error || 'sin detalle', ejecucion: $execution.id }) }}"
+        }
+      },
+      "id": "9c34e46c-5c55-5744-ab51-4b4bdeaf1149",
+      "name": "Guardar fallo de restauración",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2200,
+        100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.mailRemitente }}",
+        "toEmail": "={{ $('Configuración').first().json.mailDestino }}",
+        "subject": "=[Hoteles] Restauración de prueba: {{ $json.restauracion === 'ok' ? 'CORRECTA' : 'CON ERROR' }}",
+        "emailFormat": "html",
+        "html": "=<h2 style=\"color:{{ $json.restauracion === 'ok' ? '#1b5e20' : '#b00020' }}\">Restauración de prueba {{ $json.restauracion === 'ok' ? 'correcta' : 'con error' }}</h2>\n<ul>\n<li>Archivo: {{ $json.archivo }}</li>\n<li>Tablas restauradas: {{ $json.tablas_restauradas ?? '-' }}</li>\n<li>Filas en la tabla reserva: {{ $json.filas_reserva ?? '-' }}</li>\n<li>Duración: {{ $json.duracion_seg ?? '-' }} s</li>\n<li>Aprobación: {{ $json.aprobacion }}</li>\n<li>Verificación n.º {{ $json.id }}</li>\n</ul>\n<p>{{ $json.detalle }}</p>\n<p>La copia quedó en la base <code>restauracion_prueba</code> del contenedor <code>n8n-db-verificacion</code> para poder revisarla.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "69faee3a-2799-5d84-a53e-8ab669dcb0a4",
+      "name": "Avisar resultado de la restauración",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        20
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "hiaSmtpAvisos",
+          "name": "SMTP de avisos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE verificaciones_backup v\n   SET aprobacion = CASE WHEN $2 = 'rechazar' THEN 'rechazada' ELSE 'sin_respuesta' END,\n       detalle = v.detalle || CASE WHEN $2 = 'rechazar' THEN ' | Restauración rechazada por el operador.'\n                                   ELSE ' | Nadie respondió en 30 minutos: no se restauró.' END\n WHERE v.id = $1::bigint\nRETURNING v.*;",
+        "options": {
+          "queryReplacement": "={{ [ $('Guardar verificación').first().json.id, String(($json.query || {}).decision || 'ninguna') ] }}"
+        }
+      },
+      "id": "8a68b939-ebe6-5393-b8f4-6bfc9cc98f8e",
+      "name": "Guardar que no se aprobó",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1980,
+        240
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH s AS (SELECT $1::jsonb AS x),\n     e AS (INSERT INTO errores_flujos (flujo, tarea, detalle, ejecucion_n8n)\n           SELECT 'Verificación de backups', 'Pedir aprobación para restaurar', left(x->>'detalle', 1000), x->>'ejecucion' FROM s)\nUPDATE verificaciones_backup v\n   SET aprobacion = 'sin_respuesta',\n       detalle = v.detalle || ' | No se pudo enviar el pedido de aprobación: no se restauró.'\n  FROM s\n WHERE v.id = (s.x->>'id')::bigint\nRETURNING v.*;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('Guardar verificación').first().json.id, detalle: ($json.error && $json.error.message) || $json.error || 'sin detalle', ejecucion: $execution.id }) }}"
+        }
+      },
+      "id": "46d2b6b6-1d17-5e9b-adff-527274899f83",
+      "name": "No se pudo pedir la aprobación",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1540,
+        320
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "id": "8b56e106-f0a9-5392-be93-49d555a60dda",
+      "name": "Fin sin restaurar",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2200,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO errores_flujos (flujo, tarea, detalle, ejecucion_n8n)\nSELECT x->>'flujo', x->>'tarea', left(x->>'detalle', 1000), x->>'ejecucion_n8n'\n  FROM (SELECT $1::jsonb AS x) s\nRETURNING id, tarea, detalle;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ flujo: 'Verificación de backups', tarea: $prevNode.name, detalle: ($json.error && $json.error.message) || $json.error || $json.motivo || 'sin detalle', ejecucion_n8n: $execution.id }) }}"
+        }
+      },
+      "id": "eaef33a1-50d2-573f-bd65-e00601c3e716",
+      "name": "Registrar error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2440,
+        420
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Todos los días 08:00": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Probar ahora": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedido autenticado": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Buscar y revisar el último backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar y revisar el último backup": {
+      "main": [
+        [
+          {
+            "node": "Evaluar backup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Evaluar backup": {
+      "main": [
+        [
+          {
+            "node": "Guardar verificación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar verificación": {
+      "main": [
+        [
+          {
+            "node": "¿Backup correcto?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Backup correcto?": {
+      "main": [
+        [
+          {
+            "node": "Pedir aprobación para restaurar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar error de backup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar error de backup": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pedir aprobación para restaurar": {
+      "main": [
+        [
+          {
+            "node": "Esperar la decisión",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No se pudo pedir la aprobación",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Esperar la decisión": {
+      "main": [
+        [
+          {
+            "node": "¿Aprobó?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Aprobó?": {
+      "main": [
+        [
+          {
+            "node": "Restaurar en la base de prueba",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar que no se aprobó",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restaurar en la base de prueba": {
+      "main": [
+        [
+          {
+            "node": "Guardar resultado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Guardar fallo de restauración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar resultado": {
+      "main": [
+        [
+          {
+            "node": "Avisar resultado de la restauración",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar fallo de restauración": {
+      "main": [
+        [
+          {
+            "node": "Avisar resultado de la restauración",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar resultado de la restauración": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar que no se aprobó": {
+      "main": [
+        [
+          {
+            "node": "Fin sin restaurar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No se pudo pedir la aprobación": {
+      "main": [
+        [
+          {
+            "node": "Fin sin restaurar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Jujuy",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "active": true,
+  "pinData": {}
+}
