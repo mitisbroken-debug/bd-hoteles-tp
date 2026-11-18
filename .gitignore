@@ -1,3 +1,5 @@
 .env
 *.dump
 backups/
+cloudflared.exe
+backups/mantis_backup.sql
