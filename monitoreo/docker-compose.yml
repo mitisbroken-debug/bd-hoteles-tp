@@ -1,0 +1,192 @@
+# Punto 10 - Monitoreo: Prometheus + Alertmanager + Grafana + exportadores.
+# Se levanta desde esta carpeta con:  docker compose up -d
+# Necesita que antes esté arriba el docker-compose.yml de la raíz (base de datos)
+# y el de backend/ (API), porque nos conectamos a su red.
+# Las credenciales y el nombre de la red se leen de monitoreo/.env (no se sube).
+
+name: monitoreo
+
+services:
+
+  # ---------- Prometheus: junta las métricas y evalúa las alertas ----------
+  prometheus:
+    image: prom/prometheus:v3.16.0
+    container_name: monitoreo-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      # 15 días de historia alcanzan para la demo y no llenan el disco.
+      - --storage.tsdb.retention.time=15d
+    # Solo en 127.0.0.1: Prometheus no tiene login, así que no lo exponemos a la red.
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./prometheus/alertas.yml:/etc/prometheus/alertas.yml:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoreo
+
+  # ---------- Alertmanager: recibe las alertas y las manda a n8n ----------
+  alertmanager:
+    image: prom/alertmanager:v0.35.0
+    container_name: monitoreo-alertmanager
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/alertmanager/alertmanager.yml
+      - --storage.path=/alertmanager
+    ports:
+      - "127.0.0.1:9093:9093"
+    volumes:
+      - ./alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager-data:/alertmanager
+    # En Docker Desktop host.docker.internal ya existe; en Linux hace falta esta línea
+    # para que el webhook llegue al n8n que corre en la máquina.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - monitoreo
+
+  # ---------- Grafana: dashboards ----------
+  grafana:
+    image: grafana/grafana:13.2.6
+    container_name: monitoreo-grafana
+    restart: unless-stopped
+    depends_on:
+      - prometheus
+    environment:
+      # Usuario y clave salen del .env. OJO: solo se aplican la primera vez que
+      # arranca Grafana (cuando crea su base interna en el volumen grafana-data).
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD}
+      # Interfaz restringida: nadie se registra solo y no hay acceso anónimo.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_AUTH_DISABLE_LOGIN_FORM: "false"
+      # No mandar datos de uso afuera.
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+      # Al entrar se abre directamente nuestro dashboard.
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /etc/grafana/dashboards/propios/hoteles-vision-general.json
+    # Puerto del host configurable (GRAFANA_PORT, por defecto 3000) por si el 3000
+    # ya lo usa otro servicio. Adentro del contenedor Grafana escucha siempre en
+    # el 3000, que es el que usa Prometheus por la red interna (grafana:3000).
+    ports:
+      - "${GRAFANA_BIND:-127.0.0.1}:${GRAFANA_PORT:-3000}:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    networks:
+      - monitoreo
+
+  # ---------- Sensor del sistema operativo ----------
+  # En Docker Desktop (Windows) esto mide la máquina virtual Linux (WSL2) donde
+  # corren los contenedores, no Windows. Ver README, limitaciones.
+  node-exporter:
+    image: prom/node-exporter:v1.12.1
+    container_name: monitoreo-node-exporter
+    restart: unless-stopped
+    command:
+      - --path.rootfs=/host
+      # Ignoramos sistemas de archivos virtuales y los de cada contenedor,
+      # así el panel de disco muestra el disco real.
+      - --collector.filesystem.mount-points-exclude=^/(dev|proc|sys|run|var/lib/docker/.+|var/lib/containers/.+)($$|/)
+    pid: host
+    volumes:
+      # La doc oficial usa "/:/host:ro,rslave", pero en Docker Desktop falla con
+      # "path / is mounted on / but it is not a shared or slave mount": la raíz de
+      # la VM no es un montaje compartido. Sin rslave funciona igual; lo único que
+      # se pierde es ver discos montados DESPUÉS de arrancar el exportador.
+      - /:/host:ro
+    networks:
+      - monitoreo
+
+  # ---------- Sensor de contenedores ----------
+  cadvisor:
+    image: ghcr.io/google/cadvisor:v0.60.6
+    container_name: monitoreo-cadvisor
+    restart: unless-stopped
+    privileged: true
+    devices:
+      - /dev/kmsg
+    command:
+      - --docker_only=true
+      # Cada 15 s, igual que el scrape de Prometheus (el default de 1 s gasta CPU de más).
+      - --housekeeping_interval=15s
+      # Solo guardamos las etiquetas de compose que usamos para filtrar.
+      - --store_container_labels=false
+      - --whitelisted_container_labels=com.docker.compose.project,com.docker.compose.service
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoreo
+
+  # ---------- Sensores de la base de datos (uno por nodo) ----------
+  postgres-exporter-principal:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: monitoreo-postgres-exporter-principal
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: db-hoteles:5432/${POSTGRES_DB}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    command:
+      # Extra a lo que viene activado por defecto:
+      - --collector.long_running_transactions   # transacción abierta más vieja
+      - --collector.postmaster                  # hora de arranque del servidor
+    networks:
+      - monitoreo
+      - red-hoteles
+
+  postgres-exporter-replica:
+    image: prometheuscommunity/postgres-exporter:v0.20.1
+    container_name: monitoreo-postgres-exporter-replica
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_URI: db-replica:5432/${POSTGRES_DB}?sslmode=disable
+      DATA_SOURCE_USER: ${POSTGRES_USER}
+      DATA_SOURCE_PASS: ${POSTGRES_PASSWORD}
+    command:
+      - --collector.long_running_transactions
+      - --collector.postmaster
+      # No activamos --collector.stat_wal_receiver: lo probamos y no publica
+      # ninguna métrica acá (la réplica no usa slot de replicación). Ver README.
+    networks:
+      - monitoreo
+      - red-hoteles
+
+  # ---------- Sonda de disponibilidad de la API ----------
+  blackbox-exporter:
+    image: prom/blackbox-exporter:v0.29.1
+    container_name: monitoreo-blackbox-exporter
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/blackbox/blackbox.yml
+    volumes:
+      - ./blackbox/blackbox.yml:/etc/blackbox/blackbox.yml:ro
+    networks:
+      - monitoreo
+      - red-hoteles
+
+networks:
+  # Red interna del monitoreo.
+  monitoreo:
+    name: monitoreo_red
+  # Red de la base y la API (la crea el compose de la raíz). El nombre depende
+  # de la carpeta del repo, por eso viene del .env.
+  red-hoteles:
+    external: true
+    name: ${RED_HOTELES}
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:

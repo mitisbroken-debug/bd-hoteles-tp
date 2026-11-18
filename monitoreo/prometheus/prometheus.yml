@@ -1,0 +1,94 @@
+# Configuración de Prometheus: qué se mide, cada cuánto y dónde están las alertas.
+global:
+  # Cada 15 s se piden métricas y se evalúan las alertas. Es el valor típico:
+  # da buena resolución sin cargar a la base ni a la PC.
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+
+rule_files:
+  - /etc/prometheus/alertas.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+
+  # Prometheus se mide a sí mismo (para saber si está sano).
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: alertmanager
+    static_configs:
+      - targets: ["alertmanager:9093"]
+
+  - job_name: grafana
+    static_configs:
+      - targets: ["grafana:3000"]
+
+  # Sistema operativo (VM Linux de Docker Desktop).
+  - job_name: node
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          instance: docker-host
+
+  # Contenedores (CPU, memoria, red, disco de cada uno).
+  - job_name: cadvisor
+    # cAdvisor publica cada muestra con su propia marca de tiempo. Con eso
+    # Prometheus no marca como "vencida" la serie de un contenedor detenido y la
+    # sigue mostrando 5 min más (lo vimos en la prueba con docker stop api-hoteles).
+    # Usando la hora del scrape, la serie desaparece en el scrape siguiente y la
+    # alerta ContenedorSinReportar funciona al toque.
+    honor_timestamps: false
+    static_configs:
+      - targets: ["cadvisor:8080"]
+        labels:
+          instance: docker-host
+
+  # Base de datos: un exportador por nodo.
+  # - instance y rol: para distinguir principal y réplica en paneles y alertas.
+  # - release y kubernetes_namespace: el dashboard 9628 de la comunidad fue hecho
+  #   para Kubernetes y filtra por esas etiquetas; se las ponemos fijas para que
+  #   funcione sin tener que editar el dashboard.
+  - job_name: postgres
+    static_configs:
+      - targets: ["postgres-exporter-principal:9187"]
+        labels:
+          instance: db-hoteles
+          rol: principal
+          release: hoteles
+          kubernetes_namespace: hoteles
+      - targets: ["postgres-exporter-replica:9187"]
+        labels:
+          instance: db-replica
+          rol: replica
+          release: hoteles
+          kubernetes_namespace: hoteles
+
+  # El propio blackbox exporter (para saber si la sonda está viva).
+  - job_name: blackbox-exporter
+    static_configs:
+      - targets: ["blackbox-exporter:9115"]
+
+  # Disponibilidad de la API: blackbox hace GET /health desde la red de la app,
+  # igual que lo haría un cliente. No hace falta tocar el código del backend.
+  - job_name: blackbox-api
+    metrics_path: /probe
+    params:
+      module: [http_health]
+    static_configs:
+      - targets: ["http://api-hoteles:3000/health"]
+    relabel_configs:
+      # La URL a probar pasa como parámetro ?target=...
+      - source_labels: [__address__]
+        target_label: __param_target
+      # En los gráficos la instancia se ve como la URL de la API.
+      - source_labels: [__param_target]
+        target_label: instance
+      # Pero el pedido en sí se le hace al blackbox exporter.
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
