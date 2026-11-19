@@ -72,8 +72,8 @@ Principio aplicado: cada carpeta la edita solo su responsable, el resto del equi
 
 ## 5. Controles de seguridad
 
-- Contraseñas largas y únicas; autenticación en dos pasos para la cuenta de administración.
-- Enlaces públicos desactivados, o con contraseña y vencimiento.
+- Contraseñas largas y únicas, generadas de forma aleatoria.
+- - Enlaces públicos con contraseña obligatoria y caducidad de 7 días.
 - **No se guardan secretos** (contraseñas, tokens, claves, archivos `.env`). Si hace falta compartir uno, va cifrado o en un gestor de contraseñas.
 - No se almacenan datos personales reales; los datos de prueba son sintéticos.
 - El informe de vulnerabilidades con evidencias de fallas sin corregir se guarda solo en `09_Seguridad`.
