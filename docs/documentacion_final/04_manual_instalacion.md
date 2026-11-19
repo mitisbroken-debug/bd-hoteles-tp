@@ -105,12 +105,35 @@ docker compose -f ..\monitoreo\docker-compose.yml --env-file ..\monitoreo\.env u
 ```
 Abrir `http://localhost:5678` y crear la cuenta de dueño.
 
-## Paso 8 – Publicación en Internet, Mantis y Nextcloud
+## Paso 8 – Mantis y Nextcloud
 
-- [PENDIENTE – Seba – pasos para levantar el túnel y Traefik (punto 9) y Mantis (punto 11).]
-- [PENDIENTE – Fede – pasos para levantar Nextcloud (punto 12).]
+Mantis (punto 11): pasos en `mantis/README.md`. Queda en http://localhost:9081.
+```powershell
+docker compose -f mantis/docker-compose.yml --env-file .env up -d
+```
+Nextcloud (punto 12): pasos en `docs/nextcloud-estructura-permisos.md`. Queda en http://localhost:8085.
+```powershell
+cd nextcloud
+```
+```powershell
+copy .env.example .env
+```
+Completar las claves y poner `NC_TRUSTED_DOMAINS=localhost host.docker.internal` (si no, n8n no
+puede subir informes).
+```powershell
+docker compose up -d
+```
 
-Cuando estén, completar sus datos en `n8n\.env` y volver a ejecutar `.\importar.ps1`.
+Después completar sus datos en `n8n\.env` (tabla en `n8n/README.md`, "Conectar los flujos con
+Mantis y Nextcloud") y volver a ejecutar `.\importar.ps1`.
+
+[PENDIENTE – Seba – `mantis/README.md` todavía nombra `docker-compose.mantis.yml` y
+`mantis_inicial.sql`; los dos fueron renombrados o borrados en `develop`. El comando de arriba
+supone que las variables `MANTIS_DB_*` están en el `.env` de la raíz, como dice ese README.]
+
+## Paso 8 bis – Publicación en Internet
+
+[PENDIENTE – Seba – pasos para levantar el túnel y Traefik (punto 9).]
 
 ## Paso 9 – Comprobar todo
 
@@ -131,6 +154,8 @@ Muestra una línea por cada pieza, con OK, AVISO o FALLA. No modifica nada.
 | Grafana | http://localhost:3000 |
 | Alertmanager | http://localhost:9093 |
 | n8n | http://localhost:5678 |
+| Mantis | http://localhost:9081 |
+| Nextcloud | http://localhost:8085 |
 
 ## Problemas conocidos al instalar
 

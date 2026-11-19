@@ -61,6 +61,9 @@ Tablas de la base `automatizacion` (contenedor `n8n-db-verificacion`):
 
 ## Pendiente
 
-- [PENDIENTE – Seba – Mantis real. La integración se probó contra un simulador de su API.]
-- [PENDIENTE – Fede – Nextcloud real. La integración se probó contra un simulador de WebDAV.]
-- [PENDIENTE – Juan – prueba con la cuenta real de Brevo y con la clave real de Gemini.]
+- [PENDIENTE – Juan – repetir las pruebas contra Mantis (9081) y Nextcloud (8085) reales, que ya
+  están en `develop`. Hasta ahora se probaron con un simulador. Cómo conectarlos: `n8n/README.md`,
+  "Conectar los flujos con Mantis y Nextcloud".]
+
+Mail real (Brevo) y Gemini real: probados el 19/11/2026. Una caída de la API generó 2 incidencias,
+sus 2 mails y el aviso de resolución; el informe salió con el análisis de `gemini-3.1-flash-lite`.

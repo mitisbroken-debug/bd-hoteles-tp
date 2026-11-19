@@ -14,17 +14,17 @@ gestión documental, una IA y el mail. Todo corre en Docker y se levanta con tre
 | Credenciales en n8n | 6, cifradas. Ninguna clave en los flujos ni en el repo |
 | Tablas de control | 4 (incidencias, verificaciones de backup, informes, errores) |
 
-**Estado real al 17/11/2026** (para no afirmar de más):
+**Estado real al 19/11/2026** (para no afirmar de más):
 
 | Integración | Estado |
 |---|---|
 | Alertmanager → n8n con token | Probado de punta a punta |
 | Backups: verificación y restauración con aprobación | Probado de punta a punta |
 | Prometheus → informe | Probado con métricas reales |
-| Mantis | [PENDIENTE – Seba – levantar Mantis]. Probado contra un simulador de su API; con Mantis vacío en el `.env` las incidencias quedan en la tabla local |
-| Nextcloud | [PENDIENTE – Fede – levantar Nextcloud]. Probado contra un simulador de WebDAV; con Nextcloud vacío los informes quedan en la tabla local |
-| Mail por Brevo | Probado con un servidor de correo de prueba. [PENDIENTE – cargar usuario y clave de Brevo en `.env` y probar un envío real] |
-| IA (Gemini) | El flujo funciona sin ella. [PENDIENTE – cargar `GEMINI_API_KEY` y probar el análisis real] |
+| Mantis | Ya está en `develop` (puerto 9081). La integración se probó contra un simulador de su API; falta repetirla contra Mantis real. Ver "Conectar los flujos con Mantis y Nextcloud" |
+| Nextcloud | Ya está en `develop` (puerto 8085). La integración se probó contra un simulador de WebDAV; falta repetirla contra Nextcloud real |
+| Mail por Brevo | Probado de punta a punta el 19/11: API detenida → 2 incidencias → Brevo aceptó los mails, sin errores |
+| IA (Gemini) | Probado el 19/11 con `gemini-3.1-flash-lite`: el informe salió con el análisis. `gemini-flash-latest` tardaba más de 60 s y se descartó |
 
 ## Qué hay y para qué sirve cada cosa
 
@@ -225,8 +225,8 @@ Crea `.env`, genera las 4 claves internas y copia el token a `monitoreo/alertman
 Si PowerShell no deja ejecutar scripts: `powershell -ExecutionPolicy Bypass -File .\preparar.ps1`.
 
 Completar a mano en `n8n\.env`: los datos de Brevo (`SMTP_USER`, `SMTP_PASSWORD`, `MAIL_REMITENTE`,
-`MAIL_DESTINO`) y `GEMINI_API_KEY`. Mantis y Nextcloud se completan cuando estén levantados; si
-quedan vacíos, los flujos usan el registro local.
+`MAIL_DESTINO`) y `GEMINI_API_KEY`. Para Mantis y Nextcloud, ver "Conectar los flujos con Mantis y
+Nextcloud"; si quedan vacíos, los flujos usan el registro local.
 
 ```powershell
 docker compose up -d
@@ -253,6 +253,32 @@ Si se cambia algo del `.env`: `docker compose up -d` y de nuevo `.\importar.ps1`
 
 Atención: `docker compose down -v` borra los volúmenes (flujos cargados, historial y tablas de
 control). Para apagar sin perder nada, `docker compose down` sin `-v`.
+
+## Conectar los flujos con Mantis y Nextcloud
+
+Mantis (`mantis/`, punto 11) y Nextcloud (`nextcloud/`, punto 12) ya están en `develop`. Para que
+los flujos los usen, completar en `n8n\.env` y después `docker compose up -d` y `.\importar.ps1`:
+
+| Variable | Valor | De dónde sale |
+|---|---|---|
+| `MANTIS_URL` | `http://host.docker.internal:9081` | Mantis publica el 9081 (`mantis/docker-compose.yml`) |
+| `MANTIS_TOKEN` | Token de API de un usuario que solo reporta | Mantis → Mi cuenta → Tokens de API |
+| `MANTIS_PROYECTO` | `BD Hoteles TP` | `mantis/README.md` |
+| `MANTIS_CATEGORIA` | `Infraestructura` | Una de las 8 categorías de `mantis/README.md` |
+| `NEXTCLOUD_URL` | `http://host.docker.internal:8085` | Nextcloud publica el 8085 solo en `127.0.0.1` (`nextcloud/docker-compose.yml`) |
+| `NEXTCLOUD_USUARIO` | El usuario de Juan en Nextcloud (grupo `resp-juan`) | `docs/nextcloud-estructura-permisos.md` |
+| `NEXTCLOUD_PASSWORD` | Una contraseña de aplicación, no la principal | Nextcloud → Configuración personal → Seguridad |
+| `NEXTCLOUD_CARPETA` | `08_Automatizacion_n8n` | Carpeta de n8n en la estructura de Nextcloud |
+
+Dos cosas a revisar:
+
+- **Nextcloud solo acepta los dominios de `NC_TRUSTED_DOMAINS`** (por defecto `localhost`). n8n
+  llega como `host.docker.internal`, así que en el `.env` de Nextcloud hay que poner
+  `NC_TRUSTED_DOMAINS=localhost host.docker.internal`. Si no, rechaza la subida y el informe queda
+  en el registro local.
+- **No se probó todavía contra Mantis y Nextcloud reales**, solo contra un simulador de sus APIs.
+  Después de cargarlos, repetir el paso 2 de "Cómo demostrarlo en vivo" (la incidencia tiene que
+  quedar con `registro = mantis`) y el paso 4 (el informe tiene que quedar con `destino = nextcloud`).
 
 ## Cómo demostrarlo en vivo
 
@@ -326,9 +352,19 @@ docker exec n8n-db-verificacion psql -U n8n_flujos -d automatizacion -c "DELETE 
 
 ## Evidencias de las pruebas (17/11/2026)
 
-Hechas en una PC con Windows y Docker Desktop. Mantis y Nextcloud todavía no existen, así que
-para probar esa integración se usó un programa chico que responde como sus APIs y anota lo que
-recibe. El mail se probó con un servidor de correo de prueba. Ninguno de los dos queda en el repo.
+Hechas en una PC con Windows y Docker Desktop. El 17/11 Mantis y Nextcloud todavía no existían,
+así que para probar esa integración se usó un programa chico que responde como sus APIs y anota lo
+que recibe. El mail se probó primero con un servidor de correo de prueba y el 19/11 con Brevo real.
+Ninguno de los dos programas de prueba queda en el repo.
+
+### Prueba con mail y Gemini reales (19/11/2026)
+
+| Prueba | Resultado |
+|---|---|
+| `docker stop api-hoteles` a las 04:33:25 | A las 04:35:26 y 04:35:37 se crearon 2 incidencias (`ContenedorSinReportar` alta, `ApiCaida` urgente). Brevo aceptó los 2 mails, 0 errores |
+| `docker start api-hoteles` | Las 2 incidencias pasaron a `resuelta` a las 04:36 |
+| Flujo 3 con `gemini-flash-latest` | Timeout de 30 s (2 intentos). El informe salió igual, sin IA, y el error quedó registrado |
+| Flujo 3 con `gemini-3.1-flash-lite` | Informe con análisis de la IA: todo normal salvo "arranques de contenedores", que provocamos con la prueba |
 
 ### Flujo 1
 
@@ -402,10 +438,9 @@ no generaba copias desde hacía 4 días.
 
 ## Limitaciones conocidas
 
-- **Mantis y Nextcloud reales sin probar.** La integración está hecha según sus APIs y probada con
-  un simulador. Cuando existan hay que completar el `.env`, ejecutar `importar.ps1` y repetir las
-  pruebas. Puede hacer falta ajustar el nombre de la categoría o del proyecto.
-- **Mail real y Gemini real sin probar** hasta cargar las claves.
+- **Mantis y Nextcloud reales sin probar.** Ya están en `develop`, pero la integración se probó con
+  un simulador. Falta completar el `.env`, ejecutar `importar.ps1` y repetir las pruebas.
+- **El modelo de Gemini puede cambiar.** Si deja de responder, se cambia `GEMINI_MODELO` en `.env`.
 - **La aprobación es por enlace**, sin usuario y contraseña propios.
 - **n8n no se publica en Internet** a propósito. Por eso los enlaces de aprobación solo abren en
   la PC donde corre.

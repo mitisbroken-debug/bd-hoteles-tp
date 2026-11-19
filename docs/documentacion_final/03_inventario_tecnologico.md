@@ -30,6 +30,10 @@ Las versiones salen de los archivos indicados en cada fila.
 | Disponibilidad de la API | blackbox-exporter | v0.29.1 | `monitoreo/docker-compose.yml` |
 | Automatización | n8n y su ejecutor de código | 2.45.7 | `n8n/docker-compose.yml` |
 | Base de control de n8n | PostgreSQL | 16 | `n8n/docker-compose.yml` |
+| Gestión de incidencias | MantisBT | `vimagick/mantisbt` (sin versión fija) | `mantis/docker-compose.yml` |
+| Base de Mantis | MariaDB | 10.11 | `mantis/docker-compose.yml` |
+| Gestión documental | Nextcloud | 33.0.5 (apache) | `nextcloud/docker-compose.yml` |
+| Base de Nextcloud | PostgreSQL | 16 (alpine) | `nextcloud/docker-compose.yml` |
 | CI/CD | GitHub Actions | `checkout@v4`, `setup-buildx-action@v3`, `login-action@v3` | `.github/workflows/docker-ci-cd.yml` (rama `develop`) |
 | Registro de imágenes | Docker Hub | — | `.github/workflows/docker-ci-cd.yml` (rama `develop`) |
 | Control de versiones | Git y GitHub | — | — |
@@ -55,10 +59,12 @@ Las versiones salen de los archivos indicados en cada fila.
 | 3000 | Grafana (cambia con `GRAFANA_PORT`) | Solo `127.0.0.1` |
 | 9093 | Alertmanager | Solo `127.0.0.1` |
 | 5678 | n8n | Solo `127.0.0.1` |
+| 9081 | Mantis | Todas las interfaces |
+| 8085 | Nextcloud | Solo `127.0.0.1` |
 
 ## Pendiente
 
-- [PENDIENTE – Seba – herramientas del punto 9 (Traefik, cloudflared, dominio) y del punto 11 (Mantis y su base).]
-- [PENDIENTE – Fede – Nextcloud (punto 12) y herramientas de escaneo de seguridad (punto 14).]
+- [PENDIENTE – Seba – herramientas del punto 9 (Traefik, cloudflared, dominio).]
+- [PENDIENTE – Fede – herramientas de escaneo de seguridad (punto 14).]
 - [PENDIENTE – Seba – herramienta de gestión del proyecto (punto 2).]
 - [PENDIENTE – Brian – herramienta de análisis de la base que pide el punto 4 (por ejemplo pgBadger); en el repo no hay ninguna.]

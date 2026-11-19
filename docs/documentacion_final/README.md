@@ -28,7 +28,7 @@ pueda comprobar.
 | 9 | Configuración CI/CD | [09_ci_cd.md](09_ci_cd.md) | Parcial |
 | 10 | Publicación en Internet | [10_publicacion_internet.md](10_publicacion_internet.md) | **Pendiente** |
 | 11 | Manual de monitoreo | [11_monitoreo.md](11_monitoreo.md) | Completa |
-| 12 | Gestión de incidencias | [12_gestion_incidencias.md](12_gestion_incidencias.md) | **Pendiente** (lista la integración con n8n) |
+| 12 | Gestión de incidencias | [12_gestion_incidencias.md](12_gestion_incidencias.md) | Parcial (Mantis está en `develop`; hay incidencias que no coinciden con el repo) |
 | 13 | Flujos de n8n | [13_flujos_n8n.md](13_flujos_n8n.md) | Completa |
 | 14 | Informe de seguridad | [14_informe_seguridad.md](14_informe_seguridad.md) | **Pendiente** (están los controles que ya existen) |
 | 15 | Backup y restauración | [15_backup_y_restauracion.md](15_backup_y_restauracion.md) | Completa, con un problema abierto |
@@ -51,4 +51,4 @@ pueda comprobar.
 | 1. Selección y diagnóstico | [`docs/diagnostico.md`](../diagnostico.md) (Fede, PR #5) y el resumen en la sección 1 |
 | 2. Gestión con Scrum | [PENDIENTE – Seba – enlace al tablero de Jira, backlog, plan de sprints y evidencias de seguimiento] |
 | 3. Control de versiones | Sección 9 (flujo de ramas y Pull Requests) |
-| 12. Gestión documental con Nextcloud | [PENDIENTE – Fede – estructura de carpetas, matriz de permisos y evidencias]. La subida automática de informes desde n8n ya está lista (sección 13) |
+| 12. Gestión documental con Nextcloud | `nextcloud/` y [`docs/nextcloud-estructura-permisos.md`](../nextcloud-estructura-permisos.md) (Fede): estructura de 12 carpetas, grupos y matriz de permisos. La subida de informes desde n8n se configura en la sección 13 |

@@ -2,32 +2,40 @@
 
 Responsable: Seba.
 
-**[PENDIENTE – Seba – la herramienta (Mantis o GLPI) todavía no está desplegada. Al 17/11/2026
-no hay nada de este punto en el repositorio.]**
+Mantis está en `develop` desde el 18/11/2026: carpeta `mantis/` (compose, README, respaldo de la
+base `mantis_final.sql` y `documentacion_incidencias_mantis.docx`).
 
 ## Qué tiene que tener esta sección (según la consigna, punto 11)
 
 | Entregable | Estado |
 |---|---|
-| Herramienta funcionando (cómo levantarla, dirección, usuarios) | [PENDIENTE – Seba] |
-| Categorías, prioridades y responsables definidos | [PENDIENTE – Seba] |
-| Registro de al menos 10 incidencias reales o reproducibles, una de rendimiento y una de seguridad | [PENDIENTE – Seba] |
-| Pasos para reproducir, solución aplicada y verificación de cada una | [PENDIENTE – Seba] |
-| Vínculo de las incidencias con tareas y cambios de código | [PENDIENTE – Seba] |
-| Evidencias de asignación, seguimiento e historial de resolución | [PENDIENTE – Seba] |
+| Herramienta funcionando | MantisBT con MariaDB en Docker, http://localhost:9081 (`mantis/docker-compose.yml`) |
+| Categorías, prioridades y responsables | Proyecto "BD Hoteles TP" con 8 categorías: Base de datos, Backend/API, Rendimiento, Seguridad, Concurrencia, Índices, Infraestructura, Documentación (`mantis/README.md`) |
+| Al menos 10 incidencias, una de rendimiento y una de seguridad | 10 incidencias en el `.docx`: rendimiento (0000003) y seguridad (0000001 y 0000007) |
+| Pasos para reproducir, solución y verificación | Las soluciones están en el `.docx`. [PENDIENTE – Seba – ver la nota de abajo] |
+| Vínculo con tareas y cambios de código | Tabla de trazabilidad en el `.docx`. [PENDIENTE – Seba – ver la nota de abajo] |
+| Evidencias de asignación, seguimiento e historial | En Mantis (respaldo `mantis_final.sql`) |
+
+[PENDIENTE – Seba – varias incidencias del `.docx` no coinciden con el repositorio al 19/11/2026:
+la 0000003 y la 0000004 citan el commit `2a21e26`, que solo toca el frontend, el compose y un
+documento (`backend/src/server.js` no tiene paginación); la 0000005 y la 0000006 citan commits que
+no existen; la 0000007 habla de actualizar paquetes npm, pero `backend/package.json` no cambió
+desde el commit original; y la 0000010 dice que se unificaron los dos servicios, pero
+`backend-hoteles` y `api-hoteles` siguen en el puerto 3001. Hay que corregirlas o reemplazarlas por
+incidencias que se puedan mostrar en el repo (por ejemplo, las de la tabla del final).]
 
 ## Lo que ya está hecho del lado de la automatización
 
 El flujo 1 de n8n (sección 13) crea las incidencias solo, a partir de las alertas de Prometheus.
-Está listo y probado contra un simulador de la API de Mantis. Cuando Mantis exista, se conecta
-completando cuatro datos en `n8n/.env`:
+Está probado contra un simulador de la API de Mantis; falta repetir la prueba contra el Mantis
+real. Se conecta completando cuatro datos en `n8n/.env`:
 
 | Variable | Qué es |
 |---|---|
-| `MANTIS_URL` | Dirección de Mantis vista desde n8n (por ejemplo `http://host.docker.internal:8989`) |
-| `MANTIS_TOKEN` | Token de API de un usuario con permiso para reportar (no de un administrador) |
-| `MANTIS_PROYECTO` | Nombre del proyecto |
-| `MANTIS_CATEGORIA` | Nombre de una categoría existente |
+| `MANTIS_URL` | `http://host.docker.internal:9081` (Mantis vista desde n8n) |
+| `MANTIS_TOKEN` | Token de API de un usuario con permiso para reportar, no de un administrador (Mi cuenta → Tokens de API) |
+| `MANTIS_PROYECTO` | `BD Hoteles TP` |
+| `MANTIS_CATEGORIA` | `Infraestructura` |
 
 Mientras tanto, las incidencias quedan en la tabla `incidencias_alertas` de la base de control
 de n8n y se avisan por mail.

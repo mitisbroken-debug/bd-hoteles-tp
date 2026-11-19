@@ -9,6 +9,8 @@ levantar y cambiar su parte sin tocar la de los demás.
 | `backend/docker-compose.yml` | `backend` | API | Brian |
 | `monitoreo/docker-compose.yml` | `monitoreo` | Prometheus, Grafana, Alertmanager y 5 exportadores | Juan |
 | `n8n/docker-compose.yml` | `n8n-hoteles` | n8n, ejecutor de código, base de verificación | Juan |
+| `mantis/docker-compose.yml` | `mantis` | Mantis (9081) y MariaDB | Seba |
+| `nextcloud/docker-compose.yml` | `nextcloud-hoteles` | Nextcloud (8085, solo `127.0.0.1`) y PostgreSQL | Fede |
 
 ## Servicios
 
@@ -98,5 +100,4 @@ despliegue. Hoy hay una sola configuración.]
 ## Pendiente
 
 - [PENDIENTE – Fio – en `develop`, `backend-hoteles` y `api-hoteles` publican los dos el puerto 3001.]
-- [PENDIENTE – Seba – compose del túnel, Traefik y Mantis.]
-- [PENDIENTE – Fede – compose de Nextcloud.]
+- [PENDIENTE – Seba – compose del túnel y Traefik.]

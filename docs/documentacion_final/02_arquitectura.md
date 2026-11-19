@@ -26,8 +26,8 @@ Armada a partir de los archivos `docker-compose.yml` (raíz), `backend/docker-co
                     ▼                              Prometheus ──► Alertmanager
             carpeta backups/                            │              │ webhook con token
                     │ solo lectura                      ▼              ▼
-                    └──────────────────────────►   Grafana           n8n ──► Mantis, Nextcloud, mail, IA
-                                                   (tablero)     (3 flujos)   [PENDIENTE – Seba y Fede]
+                    └──────────────────────────►   Grafana           n8n ──► Mantis (9081), Nextcloud (8085), mail, IA
+                                                   (tablero)     (3 flujos)
 ```
 
 ## Redes de Docker
@@ -37,9 +37,12 @@ Armada a partir de los archivos `docker-compose.yml` (raíz), `backend/docker-co
 | `bd-hoteles-tp_red-hoteles` | `docker-compose.yml` de la raíz | Base principal, réplica, pgAdmin, backup, API, frontend, y los exportadores que necesitan ver la base o la API |
 | `monitoreo_red` | `monitoreo/docker-compose.yml` | Prometheus, Grafana, Alertmanager y exportadores |
 | `n8n_red` | `n8n/docker-compose.yml` | n8n, su ejecutor de código y la base de verificación |
+| `red-mantis` | `mantis/docker-compose.yml` | Mantis y su base MariaDB |
+| `red-nextcloud` | `nextcloud/docker-compose.yml` | Nextcloud y su base PostgreSQL |
 
 Los servicios se llaman entre sí por nombre dentro de cada red. Entre el monitoreo y n8n no hay
-red compartida: Alertmanager y n8n se hablan a través de `host.docker.internal`.
+red compartida: Alertmanager y n8n se hablan a través de `host.docker.internal`. Lo mismo n8n con
+Mantis (puerto 9081) y con Nextcloud (puerto 8085).
 
 ## Flujo de una reserva
 
@@ -65,8 +68,6 @@ Origen: `monitoreo/prometheus/alertas.yml`, `monitoreo/alertmanager/alertmanager
 ## Lo que todavía no está en la arquitectura
 
 - [PENDIENTE – Seba – punto 9: dominio, túnel de Cloudflare y Traefik como única entrada desde Internet.]
-- [PENDIENTE – Seba – punto 11: contenedor de Mantis.]
-- [PENDIENTE – Fede – punto 12: contenedor de Nextcloud.]
 - En la rama `develop` hay dos definiciones de la misma API (`backend-hoteles` en el compose de la
   raíz y `api-hoteles` en `backend/docker-compose.yml`), las dos en el puerto 3001.
   [PENDIENTE – Fio – dejar una sola.]

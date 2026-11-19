@@ -1,7 +1,7 @@
 # 16. Limitaciones conocidas y mejoras futuras
 
 Junta las limitaciones que cada parte ya tiene documentadas y las que aparecieron al revisar el
-proyecto completo. Estado al 17/11/2026.
+proyecto completo. Estado al 19/11/2026.
 
 ## Lo que falta hacer
 
@@ -9,8 +9,7 @@ proyecto completo. Estado al 17/11/2026.
 |---|---|---|
 | 2 | Tablero de Scrum, backlog, sprints y evidencias | Seba |
 | 9 | Publicación en Internet | Seba |
-| 11 | Herramienta de incidencias y las 10 incidencias | Seba |
-| 12 | Nextcloud, estructura y matriz de permisos | Fede |
+| 11 | Corregir las incidencias del `.docx` que no coinciden con el repo | Seba |
 | 14 | Informe de seguridad | Fede |
 
 ## Limitaciones por componente
@@ -70,8 +69,8 @@ Origen: `n8n/README.md`, "Limitaciones conocidas" y "Análisis de riesgos".
 
 | Limitación | Mejora posible |
 |---|---|
-| Mantis y Nextcloud se probaron solo con un simulador | Repetir las pruebas cuando existan |
-| Mail y Gemini reales sin probar | Cargar las claves y probar |
+| La integración con Mantis y Nextcloud se probó solo con un simulador | Repetir las pruebas contra los reales, que ya están en `develop` |
+| El modelo de Gemini puede dejar de responder (pasó con `gemini-flash-latest`) | Se cambia en `GEMINI_MODELO`; el informe sale igual sin IA |
 | Un solo token para los 3 webhooks | Un token por webhook |
 | La aprobación es por enlace, sin login propio | Aprobación desde el editor de n8n o con usuario y clave |
 | Los flujos pueden leer variables de entorno de n8n | Mover esa configuración a un almacén de variables con permisos |
