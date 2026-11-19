@@ -1,0 +1,31 @@
+services:
+  mantis-db:
+    image: mariadb:10.11
+    container_name: mantis-db
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MANTIS_DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MANTIS_DB_NAME}
+      MYSQL_USER: ${MANTIS_DB_USER}
+      MYSQL_PASSWORD: ${MANTIS_DB_PASSWORD}
+    volumes:
+      - mantis-db-data:/var/lib/mysql
+    networks:
+      - red-mantis
+
+  mantis-web:
+    image: vimagick/mantisbt
+    container_name: mantis-web
+    restart: always
+    ports:
+      - "9081:80"
+    depends_on:
+      - mantis-db
+    networks:
+      - red-mantis
+
+volumes:
+  mantis-db-data:
+
+networks:
+  red-mantis:
