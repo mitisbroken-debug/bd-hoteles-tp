@@ -1,0 +1,4 @@
+# Credenciales locales del monitoreo: no se suben.
+.env
+# Token del webhook de n8n (lo crea n8n/preparar.ps1): no se sube.
+alertmanager/secretos/

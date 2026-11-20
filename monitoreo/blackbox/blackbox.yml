@@ -1,0 +1,16 @@
+# Módulos de la sonda. Prometheus le pide a blackbox que pruebe una URL
+# (http://api-hoteles:3000/health) y blackbox devuelve si anduvo y cuánto tardó.
+modules:
+  http_health:
+    prober: http
+    # Si /health tarda más de 5 s lo damos por caído (el scrape es cada 15 s).
+    timeout: 5s
+    http:
+      method: GET
+      preferred_ip_protocol: ip4
+      # /health devuelve 200 si la API y la base principal andan, y 503 si la
+      # principal está caída. Solo aceptamos 200.
+      valid_status_codes: [200]
+      # Además el cuerpo tiene que decir que la API está ok.
+      fail_if_body_not_matches_regexp:
+        - '"api":"ok"'

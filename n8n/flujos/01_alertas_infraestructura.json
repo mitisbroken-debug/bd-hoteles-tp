@@ -1,0 +1,761 @@
+{
+  "id": "hia13Alertas0001",
+  "name": "HIA 1 - Alertas de infraestructura",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alertas-prometheus",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "27dd675b-7cb8-5a53-a1a3-a498d110ee11",
+      "name": "Alerta de Prometheus",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hiaWebhookAlertas",
+          "name": "Webhooks de n8n (token)"
+        }
+      },
+      "webhookId": "237e1d70-824f-576f-bf0b-801e6f83a45e"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "43ef6823-0215-5385-b6af-6ed2703b0d92",
+              "name": "mailRemitente",
+              "value": "={{ $env.MAIL_REMITENTE }}",
+              "type": "string"
+            },
+            {
+              "id": "2d50e0a2-4561-5beb-af91-d06acea3c8dc",
+              "name": "mailDestino",
+              "value": "={{ $env.MAIL_DESTINO }}",
+              "type": "string"
+            },
+            {
+              "id": "0ace0dbb-cf16-55eb-b02b-c2b561c13018",
+              "name": "mantisUrl",
+              "value": "={{ ($env.MANTIS_URL || '').replace(/\\/+$/, '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a061b068-9820-5548-b975-75a579b3028b",
+              "name": "mantisProyecto",
+              "value": "={{ $env.MANTIS_PROYECTO }}",
+              "type": "string"
+            },
+            {
+              "id": "7c1c5511-ceef-5e1f-9e61-9f75ca4d7b9c",
+              "name": "mantisCategoria",
+              "value": "={{ $env.MANTIS_CATEGORIA }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "dae2b083-5bf4-5292-9879-8d3e997674f9",
+      "name": "Configuración",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Valida lo que mandó Alertmanager y calcula la prioridad de cada alerta.\n// Prioridad = impacto + urgencia (como en la unidad de Gestión de Incidentes).\nconst cuerpo = $input.first().json.body;\nconst ejecucion = $execution.id;\n\n// Impacto: a cuánta gente o a qué parte del negocio afecta.\nconst IMPACTO_ALTO = ['ApiCaida', 'BasePrincipalCaida'];          // el usuario no puede reservar\nconst IMPACTO_MEDIO = ['ReplicaCaida', 'ReplicaDesconectada', 'ContenedorSinReportar',\n                       'ConexionesAltas', 'DiscoCasiLleno'];      // el sistema anda, pero degradado o en riesgo\n// Urgencia: la da la severidad que definimos en las reglas de Prometheus.\nconst URGENCIA = { critical: 'alta', warning: 'media', info: 'baja' };\nconst MATRIZ = {\n  alto:  { alta: 'urgente', media: 'alta',   baja: 'normal' },\n  medio: { alta: 'alta',    media: 'normal', baja: 'baja' },\n  bajo:  { alta: 'normal',  media: 'baja',   baja: 'baja' },\n};\n\nfunction limpiar(v, max) {\n  if (typeof v !== 'string') return '';\n  return v.replace(/[\\u0000-\\u001f\\u007f]/g, ' ').trim().slice(0, max);\n}\nfunction fecha(v) {\n  if (typeof v !== 'string') return null;\n  const d = new Date(v);\n  if (isNaN(d.getTime()) || d.getUTCFullYear() < 2000) return null;\n  return d.toISOString();\n}\nfunction invalido(motivo) {\n  return { json: { valido: false, motivo } };\n}\n\n// 1) ¿Tiene la forma de un aviso de Alertmanager?\nif (!cuerpo || typeof cuerpo !== 'object' || !Array.isArray(cuerpo.alerts)) {\n  return [invalido('El pedido no trae la lista \"alerts\" de Alertmanager')];\n}\nif (cuerpo.alerts.length === 0 || cuerpo.alerts.length > 50) {\n  return [invalido('Cantidad de alertas no permitida: ' + cuerpo.alerts.length)];\n}\n\n// 2) Revisar alerta por alerta. Solo pasan nombres y estados conocidos; los textos se recortan.\nconst salida = [];\nfor (const a of cuerpo.alerts) {\n  const etiquetas = (a && typeof a.labels === 'object' && a.labels) || {};\n  const notas = (a && typeof a.annotations === 'object' && a.annotations) || {};\n  const nombre = etiquetas.alertname;\n\n  if (typeof nombre !== 'string' || !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(nombre)) {\n    salida.push(invalido('Nombre de alerta ausente o con caracteres no permitidos'));\n    continue;\n  }\n  if (a.status !== 'firing' && a.status !== 'resolved') {\n    salida.push(invalido('Estado de alerta desconocido en ' + nombre));\n    continue;\n  }\n\n  const instancia = limpiar(etiquetas.instance || etiquetas.name || '', 200);\n  const severidad = URGENCIA[etiquetas.severity] ? etiquetas.severity : 'info';\n  const impacto = IMPACTO_ALTO.includes(nombre) ? 'alto' : IMPACTO_MEDIO.includes(nombre) ? 'medio' : 'bajo';\n  const urgencia = URGENCIA[severidad];\n\n  salida.push({\n    json: {\n      valido: true,\n      alerta: {\n        huella: nombre + '|' + instancia,   // mismo problema = misma alerta en la misma instancia\n        alerta: nombre,\n        instancia,\n        estado: a.status,\n        severidad,\n        impacto,\n        urgencia,\n        prioridad: MATRIZ[impacto][urgencia],\n        resumen: limpiar(notas.summary, 200) || nombre,\n        descripcion: limpiar(notas.description, 1000),\n        inicio: fecha(a.startsAt),\n        fin: a.status === 'resolved' ? fecha(a.endsAt) : null,\n        ejecucion,\n      },\n    },\n  });\n}\nreturn salida;\n"
+      },
+      "id": "0b34a451-93df-5744-9340-17014f1415c9",
+      "name": "Validar y priorizar",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c8c43526-3218-5af4-9133-85d48bb1ae86",
+              "leftValue": "={{ $json.valido === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "cc5e23b9-ffa7-5808-a60e-7321651ec660",
+      "name": "¿Datos válidos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT * FROM registrar_alerta($1::jsonb);",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify($json.alerta) }}"
+        }
+      },
+      "id": "428a32ee-f0e4-5a3f-b64e-e96036f52f8a",
+      "name": "Registrar sin duplicar",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        880,
+        200
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "75af6205-fff4-540e-aa81-8bc40a2816fa",
+              "leftValue": "={{ String($json.accion || '') }}",
+              "rightValue": "nueva",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4caa12a4-4a73-54b2-a557-86568de44645",
+      "name": "¿Es nueva?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "906a32c9-8217-5c48-b63c-3496d348fd08",
+              "leftValue": "={{ String($('Configuración').first().json.mantisUrl || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "ea010b36-c461-5e02-9c30-83a8af48a0d9",
+      "name": "¿Mantis configurado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.mantisUrl }}/api/rest/issues",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ summary: '[' + $json.alerta + '] ' + $json.resumen, description: 'Incidencia creada automáticamente a partir de una alerta de Prometheus.\\n\\n' + 'Alerta: ' + $json.alerta + '\\nInstancia: ' + ($json.instancia || '-') + '\\nSeveridad: ' + $json.severidad + '\\nImpacto: ' + $json.impacto + ' / Urgencia: ' + $json.urgencia + '\\nInicio: ' + $json.inicio + '\\n\\nDetalle: ' + ($json.descripcion || '-') + '\\n\\nDónde mirar: Prometheus (Alerts) y el tablero de Grafana \"Hoteles - visión general\".' + '\\nRegistro local n.º ' + $json.incidencia_id + '.', project: { name: $('Configuración').first().json.mantisProyecto }, category: { name: $('Configuración').first().json.mantisCategoria }, priority: { name: ({ urgente: 'urgent', alta: 'high', normal: 'normal', baja: 'low' })[$json.prioridad] || 'normal' } }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "dc8cb8da-8211-528f-b3b2-cdb7060495b3",
+      "name": "Crear incidencia en Mantis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hiaMantis",
+          "name": "Mantis (token de API)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE incidencias_alertas i\n   SET registro = 'mantis', mantis_id = (s.x->>'mantis_id')::bigint, actualizada = now()\n  FROM (SELECT $1::jsonb AS x) s\n WHERE i.id = (s.x->>'id')::bigint\nRETURNING i.*;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('Registrar sin duplicar').item.json.incidencia_id, mantis_id: $json.issue.id }) }}"
+        }
+      },
+      "id": "d1fed375-c342-55d5-8d4e-b6ab3d740d22",
+      "name": "Anotar número de Mantis",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1760,
+        -100
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH s AS (SELECT $1::jsonb AS x),\n     e AS (INSERT INTO errores_flujos (flujo, tarea, detalle, ejecucion_n8n)\n           SELECT 'Alertas de infraestructura', 'Crear incidencia en Mantis', left(x->>'detalle', 1000), x->>'ejecucion' FROM s)\nUPDATE incidencias_alertas i\n   SET registro = 'local', actualizada = now()\n  FROM s\n WHERE i.id = (s.x->>'id')::bigint\nRETURNING i.*;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ id: $('Registrar sin duplicar').item.json.incidencia_id, detalle: ($json.error && $json.error.message) || $json.error || 'sin detalle', ejecucion: $execution.id }) }}"
+        }
+      },
+      "id": "01b4f5be-8c55-5bf7-8dfa-a4acbf64de1c",
+      "name": "Mantis falló: registro local",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1760,
+        60
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE incidencias_alertas i\n   SET registro = 'local', actualizada = now()\n WHERE i.id = $1::bigint\nRETURNING i.*;",
+        "options": {
+          "queryReplacement": "={{ $json.incidencia_id }}"
+        }
+      },
+      "id": "64a51b99-9802-5b13-9dc3-47e30204b49a",
+      "name": "Sin Mantis: registro local",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        1540,
+        220
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.mailRemitente }}",
+        "toEmail": "={{ $('Configuración').first().json.mailDestino }}",
+        "subject": "=[Hoteles] Prioridad {{ $json.prioridad }}: {{ $json.alerta }} {{ $json.instancia ? '(' + $json.instancia + ')' : '' }}",
+        "emailFormat": "html",
+        "html": "=<h2>Nueva incidencia de infraestructura</h2>\n<p><b>{{ $json.resumen }}</b></p>\n<table cellpadding=\"6\" style=\"border-collapse:collapse\" border=\"1\">\n<tr><td>Alerta</td><td>{{ $json.alerta }}</td></tr>\n<tr><td>Instancia</td><td>{{ $json.instancia || '-' }}</td></tr>\n<tr><td>Prioridad</td><td><b>{{ $json.prioridad }}</b> (impacto {{ $json.impacto }}, urgencia {{ $json.urgencia }})</td></tr>\n<tr><td>Severidad en Prometheus</td><td>{{ $json.severidad }}</td></tr>\n<tr><td>Inicio</td><td>{{ $json.inicio }}</td></tr>\n<tr><td>Detalle</td><td>{{ $json.descripcion || '-' }}</td></tr>\n<tr><td>Dónde quedó registrada</td><td>{{ $json.registro === 'mantis' ? 'Mantis, incidencia n.º ' + $json.mantis_id : 'Registro local n.º ' + $json.id + ' (Mantis no está disponible)' }}</td></tr>\n</table>\n<p>Si la alerta se repite no se crea otra incidencia: se suma una repetición a esta.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "47015eeb-6007-52c8-a806-63936ac3a5c7",
+      "name": "Avisar incidencia nueva",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        60
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "hiaSmtpAvisos",
+          "name": "SMTP de avisos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "79b9e1c5-b5be-579d-bbb8-bc5e3e94f674",
+              "leftValue": "={{ String($json.accion || '') }}",
+              "rightValue": "resuelta",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0b8a685d-c5e4-5939-9e2c-a6cf3edcbae3",
+      "name": "¿Se resolvió?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1320,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "d10c0597-2352-5805-89db-ec227d8d932a",
+              "leftValue": "={{ String($json.mantis_id || '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4403df1b-b220-5df0-a25b-77f25254866d",
+      "name": "¿Tiene número de Mantis?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1540,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $('Configuración').first().json.mantisUrl }}/api/rest/issues/{{ $json.mantis_id }}/notes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: 'Prometheus informa que la alerta ' + $json.alerta + ' se resolvió (' + $json.fin + '). La incidencia NO se cierra sola: falta verificar la solución y cerrarla con evidencia.' }) }}",
+        "options": {
+          "timeout": 8000
+        }
+      },
+      "id": "89356d8f-74d8-5e59-8d34-ea35c20a1f54",
+      "name": "Agregar nota en Mantis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "hiaMantis",
+          "name": "Mantis (token de API)"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "={{ $('Configuración').first().json.mailRemitente }}",
+        "toEmail": "={{ $('Configuración').first().json.mailDestino }}",
+        "subject": "=[Hoteles] Resuelta: {{ $('¿Se resolvió?').item.json.alerta }} {{ $('¿Se resolvió?').item.json.instancia ? '(' + $('¿Se resolvió?').item.json.instancia + ')' : '' }}",
+        "emailFormat": "html",
+        "html": "=<h2>La alerta se resolvió</h2>\n<p><b>{{ $('¿Se resolvió?').item.json.resumen }}</b></p>\n<ul>\n<li>Inicio: {{ $('¿Se resolvió?').item.json.inicio }}</li>\n<li>Fin: {{ $('¿Se resolvió?').item.json.fin }}</li>\n<li>Avisos recibidos mientras estuvo activa: {{ $('¿Se resolvió?').item.json.repeticiones }}</li>\n<li>Registro: {{ $('¿Se resolvió?').item.json.mantis_id ? 'Mantis n.º ' + $('¿Se resolvió?').item.json.mantis_id : 'local n.º ' + $('¿Se resolvió?').item.json.incidencia_id }}</li>\n</ul>\n<p>La incidencia no se cierra automáticamente: una persona tiene que verificar la solución y cerrarla con evidencia.</p>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "33b3ee40-e614-5acf-9e27-a54bdc65aac9",
+      "name": "Avisar alerta resuelta",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2000,
+        420
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "hiaSmtpAvisos",
+          "name": "SMTP de avisos"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {},
+      "id": "ded36ff8-9d04-5515-9888-66980ef6ef22",
+      "name": "Ya estaba registrada (no se avisa otra vez)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO errores_flujos (flujo, tarea, detalle, ejecucion_n8n)\nSELECT x->>'flujo', x->>'tarea', left(x->>'detalle', 1000), x->>'ejecucion_n8n'\n  FROM (SELECT $1::jsonb AS x) s\nRETURNING id, tarea, detalle;",
+        "options": {
+          "queryReplacement": "={{ JSON.stringify({ flujo: 'Alertas de infraestructura', tarea: $prevNode.name, detalle: ($json.error && $json.error.message) || $json.error || $json.motivo || 'sin detalle', ejecucion_n8n: $execution.id }) }}"
+        }
+      },
+      "id": "dcf93fed-1f09-554b-a0f1-24662a106b1f",
+      "name": "Registrar error",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.5,
+      "position": [
+        2240,
+        300
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "hiaPostgresControl",
+          "name": "Postgres de control (n8n_flujos)"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Alerta de Prometheus": {
+      "main": [
+        [
+          {
+            "node": "Configuración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuración": {
+      "main": [
+        [
+          {
+            "node": "Validar y priorizar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validar y priorizar": {
+      "main": [
+        [
+          {
+            "node": "¿Datos válidos?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Datos válidos?": {
+      "main": [
+        [
+          {
+            "node": "Registrar sin duplicar",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar sin duplicar": {
+      "main": [
+        [
+          {
+            "node": "¿Es nueva?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Es nueva?": {
+      "main": [
+        [
+          {
+            "node": "¿Mantis configurado?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "¿Se resolvió?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Mantis configurado?": {
+      "main": [
+        [
+          {
+            "node": "Crear incidencia en Mantis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Sin Mantis: registro local",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Crear incidencia en Mantis": {
+      "main": [
+        [
+          {
+            "node": "Anotar número de Mantis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mantis falló: registro local",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anotar número de Mantis": {
+      "main": [
+        [
+          {
+            "node": "Avisar incidencia nueva",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mantis falló: registro local": {
+      "main": [
+        [
+          {
+            "node": "Avisar incidencia nueva",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sin Mantis: registro local": {
+      "main": [
+        [
+          {
+            "node": "Avisar incidencia nueva",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar incidencia nueva": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Se resolvió?": {
+      "main": [
+        [
+          {
+            "node": "¿Tiene número de Mantis?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ya estaba registrada (no se avisa otra vez)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "¿Tiene número de Mantis?": {
+      "main": [
+        [
+          {
+            "node": "Agregar nota en Mantis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar alerta resuelta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Agregar nota en Mantis": {
+      "main": [
+        [
+          {
+            "node": "Avisar alerta resuelta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar alerta resuelta": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Registrar error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Argentina/Jujuy",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true
+  },
+  "active": true,
+  "pinData": {}
+}

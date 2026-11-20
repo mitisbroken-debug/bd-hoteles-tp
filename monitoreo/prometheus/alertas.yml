@@ -1,0 +1,183 @@
+# Reglas de alerta. Prometheus las evalúa cada 15 s (evaluation_interval).
+# "for" = cuánto tiempo seguido tiene que cumplirse la condición antes de
+# disparar. Sirve para no avisar por un pico o un error suelto.
+# severity: critical = el sistema no anda para el usuario; warning = hay que mirarlo.
+
+groups:
+
+  # ------------------------------------------------------------------
+  - name: hoteles-disponibilidad
+    rules:
+
+      - alert: ApiCaida
+        # blackbox hace GET /health cada 15 s. probe_success = 0 si no responde,
+        # tarda más de 5 s o no devuelve 200 (la API da 503 si la base principal no anda).
+        # 1 min = 4 sondas fallidas seguidas: descarta un timeout aislado y avisa rápido.
+        expr: probe_success{job="blackbox-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La API de hoteles no responde"
+          description: "GET {{ $labels.instance }} falla hace más de 1 minuto (último código HTTP: ver probe_http_status_code; 0 = sin respuesta, 503 = base principal caída)."
+
+      - alert: BasePrincipalCaida
+        # pg_up = 0 cuando el exportador no se puede conectar a PostgreSQL.
+        # 1 min: un reinicio normal de Postgres tarda unos segundos, no llega a avisar.
+        expr: pg_up{rol="principal"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La base principal (db-hoteles) no acepta conexiones"
+          description: "El exportador no puede conectarse a {{ $labels.instance }} hace más de 1 minuto. Sin principal no se pueden hacer reservas."
+
+      - alert: ReplicaCaida
+        # Igual que la principal pero en la réplica. Afecta las lecturas de la API.
+        expr: pg_up{rol="replica"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "La réplica (db-replica) no acepta conexiones"
+          description: "El exportador no puede conectarse a {{ $labels.instance }} hace más de 1 minuto."
+
+      - alert: ReplicaDesconectada
+        # Visto desde la principal: si en pg_stat_replication no hay ninguna
+        # réplica en estado "streaming", la réplica está viva pero no recibe cambios.
+        # Solo se evalúa si la principal está arriba (si no, ya avisa BasePrincipalCaida).
+        # 2 min: le damos tiempo a que se reconecte sola después de un corte corto.
+        expr: |
+          absent(pg_stat_replication_pg_wal_lsn_diff{rol="principal", state="streaming"})
+          and on() (pg_up{rol="principal"} == 1)
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "No hay ninguna réplica recibiendo cambios de la principal"
+          description: "pg_stat_replication en db-hoteles no muestra réplicas en streaming hace más de 2 minutos."
+
+      - alert: ReplicacionRetrasoAlto
+        # Segundos de atraso de la réplica. El exportador devuelve 0 cuando la réplica
+        # ya aplicó todo lo que recibió (no crece si la base está quieta).
+        # 30 s sostenidos 2 min: en una red local la réplica asíncrona va casi al día;
+        # un atraso así significa que no da abasto (por ejemplo, durante una carga masiva).
+        expr: pg_replication_lag_seconds{rol="replica"} > 30
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "La réplica está atrasada"
+          description: "{{ $labels.instance }} está {{ $value | humanizeDuration }} atrasada respecto de la principal."
+
+      - alert: ReplicacionRetrasoBytesAlto
+        # Bytes de WAL que la principal mandó y la réplica todavía no aplicó.
+        # 64 MB = 4 segmentos de WAL. La principal guarda solo 1 GB de WAL
+        # (wal_keep_size=1GB en el compose de la base) y no hay slot de replicación:
+        # si el atraso pasa 1 GB la réplica se rompe. 64 MB avisa con mucho margen.
+        expr: pg_stat_replication_pg_wal_lsn_diff{rol="principal"} > 64 * 1024 * 1024
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "La réplica tiene mucho WAL pendiente de aplicar"
+          description: "Hay {{ $value | humanize1024 }}B de WAL sin aplicar en la réplica {{ $labels.client_addr }}."
+
+      - alert: ConexionesAltas
+        # Porcentaje de conexiones usadas sobre max_connections (100 por defecto).
+        # 80% sostenido 5 min: queda margen antes de que Postgres rechace conexiones.
+        expr: |
+          100 * sum by (instance) (pg_stat_activity_count)
+            / on(instance) max by (instance) (pg_settings_max_connections) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Muchas conexiones abiertas en {{ $labels.instance }}"
+          description: "Se está usando el {{ $value | printf \"%.0f\" }}% de max_connections."
+
+  # ------------------------------------------------------------------
+  - name: hoteles-sistema
+    rules:
+
+      - alert: CpuAlta
+        # Promedio de todos los núcleos de la VM de Docker.
+        # 85% sostenido 5 min = saturación real, no un pico (ej. crear un índice).
+        expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[2m]))) > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU alta en {{ $labels.instance }}"
+          description: "La CPU está al {{ $value | printf \"%.0f\" }}% hace más de 5 minutos."
+
+      - alert: MemoriaAlta
+        # MemAvailable descuenta la caché que Linux puede liberar, así que es el
+        # uso "real". 90% sostenido 5 min: cerca de que el kernel empiece a matar procesos.
+        expr: 100 * (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) > 90
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Memoria alta en {{ $labels.instance }}"
+          description: "La memoria está al {{ $value | printf \"%.0f\" }}% hace más de 5 minutos."
+
+      - alert: DiscoCasiLleno
+        # /var/lib = disco virtual donde Docker guarda imágenes y volúmenes (la base).
+        # /mnt/host/c = disco C: de Windows, que es donde vive ese disco virtual.
+        # 85%: deja lugar para la carga masiva, los backups y el WAL (1 GB).
+        # 10 min: el disco cambia lento; evita avisar por archivos temporales.
+        expr: |
+          100 * (1 - node_filesystem_avail_bytes{mountpoint=~"/var/lib|/mnt/host/c"}
+                   / node_filesystem_size_bytes{mountpoint=~"/var/lib|/mnt/host/c"}) > 85
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Disco casi lleno ({{ $labels.mountpoint }})"
+          description: "{{ $labels.mountpoint }} está al {{ $value | printf \"%.0f\" }}%."
+
+  # ------------------------------------------------------------------
+  - name: hoteles-contenedores
+    rules:
+
+      - alert: ContenedorSinReportar
+        # cAdvisor solo publica métricas de contenedores que están corriendo.
+        # Si uno del proyecto desaparece, absent() lo detecta (con su nombre como etiqueta).
+        # 1 min: alcanza para que cAdvisor (cada 15 s) y Prometheus noten el cambio.
+        expr: |
+          absent(container_last_seen{name="db-hoteles"})
+          or absent(container_last_seen{name="db-replica"})
+          or absent(container_last_seen{name="api-hoteles"})
+          or absent(container_last_seen{name="pgadmin-hoteles"})
+          or absent(container_last_seen{name="db-backup"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "El contenedor {{ $labels.name }} dejó de reportar"
+          description: "cAdvisor no ve el contenedor {{ $labels.name }} hace más de 1 minuto (está detenido o fue borrado)."
+
+      - alert: ContenedorReiniciandose
+        # cAdvisor no tiene un contador de reinicios. Lo que sí tiene es la hora de
+        # arranque de cada contenedor: si cambia, el contenedor arrancó de nuevo.
+        # Más de 2 arranques en 15 min = está en un ciclo de caídas.
+        expr: changes(container_start_time_seconds{name=~"db-hoteles|db-replica|api-hoteles|pgadmin-hoteles|db-backup"}[15m]) > 2
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "El contenedor {{ $labels.name }} se reinicia seguido"
+          description: "{{ $labels.name }} arrancó {{ $value }} veces en los últimos 15 minutos."
+
+      - alert: TargetCaido
+        # Algún exportador (o Prometheus, Grafana, Alertmanager) no responde.
+        # Sin esto, si se cae un exportador las otras alertas no se enteran.
+        # 2 min: un reinicio de contenedor no llega a avisar.
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Prometheus no puede leer {{ $labels.job }} ({{ $labels.instance }})"
+          description: "El target {{ $labels.instance }} del job {{ $labels.job }} no responde hace más de 2 minutos."

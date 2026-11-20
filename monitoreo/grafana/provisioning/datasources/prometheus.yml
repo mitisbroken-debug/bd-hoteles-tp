@@ -1,0 +1,15 @@
+# Fuente de datos que Grafana crea sola al arrancar.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    # uid fijo: los dashboards lo referencian por este nombre.
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false
+    jsonData:
+      # Igual al scrape_interval de Prometheus, para que los rate() no queden cortos.
+      timeInterval: 15s
