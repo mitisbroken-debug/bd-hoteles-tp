@@ -25,7 +25,7 @@ services:
 
   nextcloud:
     # Versión fija de la rama estable; actualizar a un parche 33.0.x más nuevo cuando corresponda.
-    image: nextcloud:33.0.5-apache
+    image: nextcloud:33.0.11-apache
     container_name: nextcloud-app
     restart: unless-stopped
     depends_on:
