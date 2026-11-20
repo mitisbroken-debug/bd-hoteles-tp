@@ -49,7 +49,7 @@ jobs:
           docker build -t fiore2028/hotel-frontend:latest -t fiore2028/hotel-frontend:${{ github.sha }} ./frontend
 
       - name: Escanear imagen Backend con Trivy
-        uses: aquasecurity/trivy-action@3f6334d223b52188324af3b9923b4249cd206652 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: fiore2028/hotel-backend:${{ github.sha }}
           format: table
@@ -59,7 +59,7 @@ jobs:
           version: 'latest'
 
       - name: Escanear imagen Frontend con Trivy
-        uses: aquasecurity/trivy-action@3f6334d223b52188324af3b9923b4249cd206652 # 0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: fiore2028/hotel-frontend:${{ github.sha }}
           format: table
