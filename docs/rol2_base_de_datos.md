@@ -190,15 +190,11 @@ Se configuró **GitHub Actions** para automatizar el proceso de integración con
 * **Aislamiento:** Las credenciales de acceso al registro de contenedores están protegidas mediante los *GitHub Secrets*, impidiendo su filtración en el historial de commits.
 
 ### Procedimiento de Recuperación (Rollback)
-En caso de que una imagen subida mediante el pipeline presente errores críticos en producción:
-1. **Identificar la versión estable anterior** en el historial de etiquetas (tags) de Docker Hub o mediante los commits de Git.
-2. **Forzar el despliegue de la versión anterior** conectándose al servidor de destino y ejecutando:
+Actualmente el workflow de GitHub Actions construye y publica únicamente la etiqueta `:latest` en Docker Hub (`fiore2028/hotel-backend:latest` y `fiore2028/hotel-frontend:latest`), sin generar tags versionados automáticamente (como `:v1.0.0`). 
+
+En caso de que una actualización presente errores críticos:
+1. **Identificar el último commit estable** en el historial de Git (`git log --oneline`).
+2. **Revertir el código en el repositorio** mediante `git revert <hash-del-commit>` (o volver al commit estable anterior) y realizar `push` para que el pipeline reconstruya y publique nuevamente `:latest` con la versión funcional.
+3. **Actualizar el despliegue** en el entorno de destino ejecutando:
    ```bash
-   docker compose down
-   # Modificar temporalmente la versión en docker-compose.yml a una etiqueta anterior estable (ej: :v1.0.0)
-   docker compose up -d --pull always
-3. **Forzar el despliegue de la versión anterior** conectándose al servidor de destino y ejecutando:
-   ```bash
-   docker compose down
-   # Modificar temporalmente la versión en docker-compose.yml a una etiqueta anterior estable (ej: :v1.0.0 o el tag previo)
-   docker compose up -d --pull always
+   docker compose up -d --build
