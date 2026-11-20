@@ -34,11 +34,8 @@ Origen: `backend/README.md`, sección "Seguridad", y revisión de `develop`.
 
 | Limitación | Mejora posible |
 |---|---|
-| La API no tiene autenticación ni roles | Login con tokens y permisos por rol |
-| No limita la cantidad de pedidos | Límite por IP en la API o en el proxy |
-| CORS abierto a cualquier origen | Definir `CORS_ORIGIN` con la dirección del frontend |
-| El frontend tiene fija la dirección `localhost:3001` | Que el Nginx del frontend reenvíe `/api` a la API, o configurar la dirección |
-| Dos definiciones de la misma API en el puerto 3001 (en `develop`) | Dejar una sola |
+| El login con token protege solo las reservas, sin roles | Permisos por rol (huésped, recepción, administración) |
+| El límite de pedidos está en el Nginx del frontend, no en la API | Sumar un límite en la API por si se la llama por otro camino |
 | Una sola configuración para desarrollo y despliegue | Archivos de compose separados por entorno |
 
 ### CI/CD

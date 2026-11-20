@@ -16,13 +16,14 @@ base `mantis_final.sql` y `documentacion_incidencias_mantis.docx`).
 | Vínculo con tareas y cambios de código | Tabla de trazabilidad en el `.docx`. [PENDIENTE – Seba – ver la nota de abajo] |
 | Evidencias de asignación, seguimiento e historial | En Mantis (respaldo `mantis_final.sql`) |
 
-[PENDIENTE – Seba – varias incidencias del `.docx` no coinciden con el repositorio al 19/11/2026:
-la 0000003 y la 0000004 citan el commit `2a21e26`, que solo toca el frontend, el compose y un
-documento (`backend/src/server.js` no tiene paginación); la 0000005 y la 0000006 citan commits que
-no existen; la 0000007 habla de actualizar paquetes npm, pero `backend/package.json` no cambió
-desde el commit original; y la 0000010 dice que se unificaron los dos servicios, pero
-`backend-hoteles` y `api-hoteles` siguen en el puerto 3001. Hay que corregirlas o reemplazarlas por
-incidencias que se puedan mostrar en el repo (por ejemplo, las de la tabla del final).]
+El 20/11/2026 se corrigieron en el `.docx` las incidencias 0000003 a 0000007: ahora citan commits
+que existen (`5c94a8d`, `247b468`, `21b3126`, `fe69faf`).
+[PENDIENTE – Seba – la 0000010 sigue describiendo la resolución de un conflicto de fusión; conviene
+que cite el commit que quitó el backend duplicado (`247b468`).]
+
+Prueba real del 20/11/2026: una alerta de prueba enviada a Alertmanager creó en Mantis la
+incidencia 11 ("[PruebaMantisReal] …", proyecto BD Hoteles TP, categoría Infraestructura),
+reportada por el usuario `n8n` (informador) con su token de API.
 
 ## Lo que ya está hecho del lado de la automatización
 
@@ -74,11 +75,11 @@ Detectadas durante la revisión del 16 y 17/11/2026. Sirven como parte de las 10
 
 | # | Incidencia | Tipo | Cómo reproducirla |
 |---|---|---|---|
-| 1 | El backup no se genera después de reiniciar la PC | Disponibilidad | `docker logs db-backup` muestra "Connection refused" y "ERROR, se borra el archivo incompleto" |
-| 2 | Dos servicios publican el puerto 3001 | Configuración | En `develop`, `backend-hoteles` y `api-hoteles` usan el 3001 |
-| 3 | El frontend llama a `localhost:3001` | Configuración | Abrir la página desde otro dispositivo: no carga datos |
+| 1 | El backup no se generaba después de reiniciar la PC | Disponibilidad | Lo detectó el flujo 2 de n8n (backup de 95 h). **Resuelta** el 20/11: `db-backup` espera con `pg_isready` |
+| 2 | Dos servicios publicaban el puerto 3001 | Configuración | **Resuelta** en `247b468` (19/11): queda solo `api-hoteles` |
+| 3 | El frontend llamaba a `localhost:3001` | Configuración | **Resuelta** el 20/11: Nginx reenvía `/api` y la página usa una ruta relativa |
 | 4 | La primera ejecución del pipeline falló | CI/CD | Pestaña Actions, ejecución #1 |
-| 5 | La API no pide autenticación y acepta cualquier origen | **Seguridad** | `curl.exe http://localhost:3001/api/hoteles` responde sin credenciales; `CORS_ORIGIN` vale `*` |
+| 5 | La API no pedía autenticación y aceptaba cualquier origen | **Seguridad** | **Resuelta** el 20/11: las rutas de reservas piden token (`/api/auth/login`) y `CORS_ORIGIN` es `http://localhost:8090` por defecto |
 | 6 | Búsqueda de reservas por huésped sin índice | **Rendimiento** | `rendimiento_y_concurrencia/salida_47_slowlog.txt`: una consulta por huésped tardó más de 4 s antes de crear `idx_reserva_huesped` |
 | 7 | El documento de diagnóstico se integró vacío (PR #4, 15/11) | Proceso | Ver `docs/diagnostico.md` en el commit `dfd9b6d`: 0 bytes. **Ya resuelta**: el PR #5 (17/11) agregó el contenido. Sirve como ejemplo de incidencia cerrada con evidencia |
 | 8 | La evidencia de carga muestra errores | Datos | `salida_carga.txt` |

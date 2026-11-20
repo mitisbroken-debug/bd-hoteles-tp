@@ -23,12 +23,11 @@ La consigna exige que la aplicación esté accesible desde Internet durante la d
 
 Datos del resto del proyecto que hay que tener en cuenta al hacerla:
 
-- **El frontend llama a `http://localhost:3001`** (`frontend/index.html`, línea 263, rama
-  `develop`). Desde un dispositivo externo, `localhost` es ese dispositivo, así que la página
-  cargaría pero no traería datos. [PENDIENTE – Fio – que la dirección de la API no quede fija.]
-- **Qué no se debe publicar**, según la consigna: la base de datos (5440, 5442) y las interfaces
-  administrativas (pgAdmin 5050, Grafana, Prometheus, Alertmanager, n8n). Las de monitoreo y n8n
-  ya están publicadas solo en `127.0.0.1`.
+- **Alcanza con publicar el frontend (8090).** Su Nginx reenvía `/api` y `/health` a la API
+  (`frontend/nginx.conf`) y la página llama a la API con una ruta relativa (`API_URL = ''`).
+- **Qué no se debe publicar**, según la consigna: la base de datos y las interfaces administrativas.
+  La base, la réplica y la API ya no publican puertos; pgAdmin, Grafana, Prometheus, Alertmanager,
+  n8n y Nextcloud están solo en `127.0.0.1`. Mantis (9081) sí se publica en todas las interfaces.
 - **La red de la base** se llama `bd-hoteles-tp_red-hoteles`: el proxy tiene que unirse a esa
   red como externa para llegar al frontend.
 - **El puerto 80 de la PC** suele estar ocupado por contenedores de otros trabajos.

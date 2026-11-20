@@ -18,9 +18,9 @@ levantar y cambiar su parte sin tocar la de los demás.
 
 | Servicio | Imagen | Puerto | Volumen | Notas |
 |---|---|---|---|---|
-| `db-hoteles` | `postgres:16` | 5440 | `hoteles-data` | Nodo principal. Arranca con `wal_level=replica`, `max_wal_senders=10`, `wal_keep_size=1GB`. Usa un `pg_hba.conf` propio para aceptar a la réplica. Tiene `healthcheck` con `pg_isready` |
-| `db-replica` | `postgres:16` | 5442 | `replica-data` | La primera vez clona al principal con `pg_basebackup -R`; después arranca directo como réplica |
-| `pgadmin` | `dpage/pgadmin4:latest` | 5050 | `pgadmin-data` | Los dos servidores ya vienen cargados desde `pgadmin/servers.json` |
+| `db-hoteles` | `postgres:16` | no se publica | `hoteles-data` | Nodo principal. Arranca con `wal_level=replica`, `max_wal_senders=10`, `wal_keep_size=1GB`. Usa un `pg_hba.conf` propio para aceptar a la réplica. Tiene `healthcheck` con `pg_isready` |
+| `db-replica` | `postgres:16` | no se publica | `replica-data` | La primera vez clona al principal con `pg_basebackup -R`; después arranca directo como réplica |
+| `pgadmin` | `dpage/pgadmin4` fijada por digest | `127.0.0.1:5050` | `pgadmin-data` | Los dos servidores ya vienen cargados desde `pgadmin/servers.json` |
 | `db-backup` | `postgres:16` | — | carpeta `./backups` | `pg_dump -Fc` cada `BACKUP_INTERVAL_SECONDS` (24 h) y guarda los últimos `BACKUP_KEEP` (3) |
 
 El esquema se carga solo la primera vez: `sql/esquema/schema.sql` está montado en
@@ -30,16 +30,19 @@ El esquema se carga solo la primera vez: `sql/esquema/schema.sql` está montado 
 
 | Servicio | Imagen | Puerto | Notas |
 |---|---|---|---|
-| `api-hoteles` | Construida desde `node:20-alpine` | 3001 → 3000 | Se une a la red de la base como red externa. Recibe por variables el nodo principal, la réplica y las credenciales |
+| `api-hoteles` | Construida desde `node:20-alpine` | no se publica (3000 interno) | Se une a la red de la base como red externa. Recibe por variables el nodo principal, la réplica y las credenciales |
 
 El `Dockerfile` instala solo dependencias de producción (`npm ci --omit=dev`) y corre con el
 usuario `node`, no como administrador.
 
-### Frontend (rama `develop`)
+### Frontend
 
 | Servicio | Imagen | Puerto |
 |---|---|---|
-| `frontend` | Construida desde `nginx:alpine` con `frontend/index.html` adentro | 8090 → 80 |
+| `frontend` | Construida desde `nginxinc/nginx-unprivileged:alpine` con `index.html` y `nginx.conf` | 8090 → 8080 |
+
+`frontend/nginx.conf` reenvía `/api` y `/health` a `api-hoteles:3000`, limita a 10 pedidos por
+segundo por IP y agrega cabeceras de seguridad. Por eso la API no necesita publicar su puerto.
 
 ### Monitoreo y n8n
 
@@ -99,5 +102,4 @@ despliegue. Hoy hay una sola configuración.]
 
 ## Pendiente
 
-- [PENDIENTE – Fio – en `develop`, `backend-hoteles` y `api-hoteles` publican los dos el puerto 3001.]
 - [PENDIENTE – Seba – compose del túnel y Traefik.]
