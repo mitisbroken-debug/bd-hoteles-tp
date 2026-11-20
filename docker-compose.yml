@@ -112,7 +112,7 @@ services:
     container_name: frontend-hoteles
     restart: unless-stopped
     ports:
-      - "8090:80"
+      - "8090:8080"
     networks:
       - red-hoteles
 

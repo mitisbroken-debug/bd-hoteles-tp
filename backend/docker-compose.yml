@@ -15,9 +15,9 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
-      CORS_ORIGIN: ${CORS_ORIGIN:-*}
-    ports:
-         - "3001:3000"
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:8090}
+      AUTH_SECRET: ${AUTH_SECRET}
+
     networks:
       - red-hoteles
 

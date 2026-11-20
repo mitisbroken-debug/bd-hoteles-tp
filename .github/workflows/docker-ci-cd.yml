@@ -1,5 +1,8 @@
 name: CI/CD Hotel System Pipeline
 
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "feature/front-docker-cicd", "develop", "main" ]
@@ -9,14 +12,16 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Checkout del código
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Configurar Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@39370e3370a6124fca1c757e7459c1a6850a8b26 # v4.1.0
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Validar dependencias, sintaxis y seguridad del Backend
         run: |
@@ -26,23 +31,42 @@ jobs:
           npm audit --audit-level=high
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@3b52951635129273194f8f5389098c93849c00e5 # v3.8.0
 
       - name: Login a Docker Hub
-        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        uses: docker/login-action@9780b0c442fbb1117ed29e0ef89e185259b10b42 # v3.3.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Construir y etiquetar Backend
         run: |
-          docker build -t fiore2028/hotel-backend:latest ./backend
-          docker tag fiore2028/hotel-backend:latest fiore2028/hotel-backend:${{ github.sha }}
+          docker build -t fiore2028/hotel-backend:latest -t fiore2028/hotel-backend:${{ github.sha }} ./backend
 
       - name: Construir y etiquetar Frontend
         run: |
-          docker build -t fiore2028/hotel-frontend:latest ./frontend
-          docker tag fiore2028/hotel-frontend:latest fiore2028/hotel-frontend:${{ github.sha }}
+          docker build -t fiore2028/hotel-frontend:latest -t fiore2028/hotel-frontend:${{ github.sha }} ./frontend
+
+      - name: Escanear imagen Backend con Trivy 0.69.3
+        uses: aquasecurity/trivy-action@90172d3bb5f2e974e0b1a9f0c82e7b90b1d7074a # v0.28.0
+        with:
+          image-ref: fiore2028/hotel-backend:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL
+          version: '0.69.3'
+
+      - name: Escanear imagen Frontend con Trivy 0.69.3
+        uses: aquasecurity/trivy-action@90172d3bb5f2e974e0b1a9f0c82e7b90b1d7074a # v0.28.0
+        with:
+          image-ref: fiore2028/hotel-frontend:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL
+          version: '0.69.3'
 
       - name: Push de imágenes a Docker Hub (Solo si pasa las validaciones)
         if: github.event_name != 'pull_request'
