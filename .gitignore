@@ -1,6 +1,2 @@
 .env
 *.dump
-backups/
-cloudflared.exe
-backups/mantis_backup.sql
-config_inc.php.bak

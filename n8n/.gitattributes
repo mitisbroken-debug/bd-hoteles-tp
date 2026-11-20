@@ -1,6 +1,0 @@
-# Estos archivos se usan dentro de contenedores Linux: siempre con saltos de línea LF,
-# aunque el repo se clone en Windows.
-*.sql  text eol=lf
-*.js   text eol=lf
-*.json text eol=lf
-*.yml  text eol=lf
