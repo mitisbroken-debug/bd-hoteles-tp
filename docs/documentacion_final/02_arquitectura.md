@@ -12,16 +12,16 @@ Armada a partir de los archivos `docker-compose.yml` (raíz), `backend/docker-co
                                                      │
    Navegador ──► frontend-hoteles (Nginx, 8090) ─────┤
                                                      ▼
-                                          api-hoteles (Node, 3001)
+                     (/api y /health)     api-hoteles (Node, sin puerto publicado)
                                            │ escribe            │ lee
                                            ▼                    ▼
                                     db-hoteles ───WAL───►  db-replica
-                                    (principal, 5440)      (solo lectura, 5442)
+                                    (principal)            (solo lectura)
                                            │
                     ┌──────────────────────┼─────────────────────┐
                     ▼                      ▼                     ▼
               db-backup              pgadmin-hoteles      exportadores de monitoreo
-           (pg_dump cada 24 h)          (5050)                   │
+           (pg_dump cada 24 h)   (127.0.0.1:5050)                │
                     │                                            ▼
                     ▼                              Prometheus ──► Alertmanager
             carpeta backups/                            │              │ webhook con token
@@ -68,6 +68,6 @@ Origen: `monitoreo/prometheus/alertas.yml`, `monitoreo/alertmanager/alertmanager
 ## Lo que todavía no está en la arquitectura
 
 - [PENDIENTE – Seba – punto 9: dominio, túnel de Cloudflare y Traefik como única entrada desde Internet.]
-- En la rama `develop` hay dos definiciones de la misma API (`backend-hoteles` en el compose de la
-  raíz y `api-hoteles` en `backend/docker-compose.yml`), las dos en el puerto 3001.
-  [PENDIENTE – Fio – dejar una sola.]
+Desde el 20/11/2026 la base, la réplica y la API ya no publican puertos en la PC: solo se ven
+dentro de la red de Docker. Desde afuera se entra por el frontend (8090), que reenvía `/api` y
+`/health` a la API (`frontend/nginx.conf`). pgAdmin quedó solo en `127.0.0.1`.

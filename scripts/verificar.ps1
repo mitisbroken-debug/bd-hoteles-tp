@@ -77,13 +77,30 @@ else {
 # ---------- 3. Aplicacion (punto 7) ----------
 Write-Host ''
 Write-Host '3. Aplicacion' -ForegroundColor Cyan
-$salud = Pedir 'http://localhost:3001/health'
-if ($salud -and $salud.principal -eq 'ok' -and $salud.replica -eq 'ok') { Mostrar 'OK' 'API /health: api, principal y replica en ok' }
+# La API ya no publica el puerto 3001: se llega a ella por el frontend (Nginx reenvia /health y /api).
+$salud = Pedir 'http://localhost:8090/health'
+if ($salud -and $salud.principal -eq 'ok' -and $salud.replica -eq 'ok') { Mostrar 'OK' 'API /health (via frontend): api, principal y replica en ok' }
 elseif ($salud) { Mostrar 'FALLA' "API /health responde pero con problemas: principal=$($salud.principal) replica=$($salud.replica)" }
-else { Mostrar 'FALLA' 'API /health no responde en http://localhost:3001' }
+else {
+    # Si el frontend no esta, se consulta lo que mide Prometheus sobre la API (blackbox, red interna).
+    $sonda = Pedir 'http://127.0.0.1:9090/api/v1/query?query=probe_success%7Bjob%3D%22blackbox-api%22%7D'
+    $valor = $null
+    if ($sonda -and $sonda.data.result.Count -gt 0) { $valor = $sonda.data.result[0].value[1] }
+    if ($valor -eq '1') { Mostrar 'AVISO' 'API arriba segun Prometheus, pero no responde por el frontend (http://localhost:8090/health)' }
+    else { Mostrar 'FALLA' 'API /health no responde (ni por el frontend ni segun Prometheus)' }
+}
 
 if ((Codigo 'http://localhost:8090') -eq 200) { Mostrar 'OK' 'Frontend responde en http://localhost:8090' }
 else { Mostrar 'AVISO' 'Frontend no responde en http://localhost:8090 (punto 7)' }
+
+# ---------- 3 bis. Incidencias y gestion documental (puntos 11 y 12) ----------
+Write-Host ''
+Write-Host '3 bis. Mantis y Nextcloud' -ForegroundColor Cyan
+if ((Codigo 'http://localhost:9081/login_page.php') -eq 200) { Mostrar 'OK' 'Mantis responde en http://localhost:9081' }
+else { Mostrar 'AVISO' 'Mantis no responde en http://localhost:9081 (punto 11)' }
+$nc = Pedir 'http://localhost:8085/status.php'
+if ($nc -and $nc.installed) { Mostrar 'OK' "Nextcloud responde en http://localhost:8085 (version $($nc.versionstring))" }
+else { Mostrar 'AVISO' 'Nextcloud no responde en http://localhost:8085 (punto 12)' }
 
 # ---------- 4. Monitoreo (punto 10) ----------
 Write-Host ''

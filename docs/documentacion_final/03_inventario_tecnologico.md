@@ -12,7 +12,7 @@ Las versiones salen de los archivos indicados en cada fila.
 | Backend | Express | 4.22.3 | `backend/package.json` |
 | Backend | pg (cliente de PostgreSQL) | 8.23.1 | `backend/package.json` |
 | Frontend | HTML, CSS y JavaScript sin framework | — | `frontend/index.html` (rama `develop`) |
-| Servidor web del frontend | Nginx | `nginx:alpine` (sin versión fija) | `frontend/Dockerfile` (rama `develop`) |
+| Servidor web del frontend | Nginx sin privilegios | `nginxinc/nginx-unprivileged:alpine` | `frontend/Dockerfile` |
 
 ## Infraestructura y herramientas
 
@@ -50,11 +50,10 @@ Las versiones salen de los archivos indicados en cada fila.
 
 | Puerto | Servicio | Se ve desde |
 |---|---|---|
-| 5440 | PostgreSQL principal | Todas las interfaces |
-| 5442 | PostgreSQL réplica | Todas las interfaces |
-| 5050 | pgAdmin | Todas las interfaces |
-| 3001 | API | Todas las interfaces |
-| 8090 | Frontend (rama `develop`) | Todas las interfaces |
+| — | PostgreSQL principal y réplica | No se publican: solo red interna de Docker |
+| — | API | No se publica: se llega por el frontend (`/api`, `/health`) |
+| 5050 | pgAdmin | Solo `127.0.0.1` |
+| 8090 | Frontend (Nginx, puerto interno 8080) | Todas las interfaces |
 | 9090 | Prometheus | Solo `127.0.0.1` |
 | 3000 | Grafana (cambia con `GRAFANA_PORT`) | Solo `127.0.0.1` |
 | 9093 | Alertmanager | Solo `127.0.0.1` |

@@ -6,7 +6,7 @@ Cómo levantar todo en una PC nueva, en orden. Cada bloque depende del anterior.
 
 - Windows con Docker Desktop abierto (o Linux con Docker y Docker Compose).
 - Git.
-- Puertos libres: 5440, 5442, 5050, 3001, 8090, 9090, 3000, 9093 y 5678.
+- Puertos libres: 5050, 8090, 9090, 3000, 9093, 5678, 9081 y 8085.
   Para ver qué contenedor ocupa un puerto: `docker ps --format "{{.Names}} {{.Ports}}"`.
 
 ## Paso 1 – Clonar el repositorio
@@ -51,18 +51,19 @@ Origen: `backend/README.md`.
 ```powershell
 docker compose -f backend/docker-compose.yml --env-file .env up -d --build
 ```
-```powershell
-curl.exe http://localhost:3001/health
-```
-Tiene que responder `{"api":"ok","principal":"ok","replica":"ok"}`.
+La API no publica puerto: se comprueba por el frontend una vez hecho el paso 5.
+En el `.env` de la raíz hay que completar `AUTH_SECRET` (firma de los tokens de login) y
+`CORS_ORIGIN` (ver `.env.example`).
 
 ## Paso 5 – Frontend
 
-Origen: `docker-compose.yml` de la rama `develop` (servicio `frontend`). Queda en `http://localhost:8090`.
+Origen: `docker-compose.yml` (servicio `frontend`). Se levanta con el `docker compose up -d` del
+paso 2 y queda en `http://localhost:8090`. Su Nginx reenvía `/api` y `/health` a la API.
 
-[PENDIENTE – Fio – en `develop` el compose de la raíz también levanta un segundo backend
-(`backend-hoteles`) en el puerto 3001, el mismo de `api-hoteles`. Hasta que quede uno solo, este
-paso no se puede escribir como definitivo.]
+```powershell
+curl.exe http://localhost:8090/health
+```
+Tiene que responder `{"api":"ok","principal":"ok","replica":"ok"}`.
 
 ## Paso 6 – Monitoreo
 
@@ -148,8 +149,8 @@ Muestra una línea por cada pieza, con OK, AVISO o FALLA. No modifica nada.
 | Qué | Dirección |
 |---|---|
 | Frontend | http://localhost:8090 |
-| API | http://localhost:3001/health |
-| pgAdmin | http://localhost:5050 |
+| API | http://localhost:8090/health (por el frontend) |
+| pgAdmin | http://localhost:5050 (solo desde esta PC) |
 | Prometheus | http://localhost:9090 |
 | Grafana | http://localhost:3000 |
 | Alertmanager | http://localhost:9093 |

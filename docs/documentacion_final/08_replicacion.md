@@ -9,8 +9,8 @@ Replicación **física en streaming, asíncrona**, de PostgreSQL 16, con dos nod
 
 | Nodo | Contenedor | Puerto | Rol |
 |---|---|---|---|
-| Principal | `db-hoteles` | 5440 | Lee y escribe. Manda su registro de cambios (WAL) a la réplica |
-| Réplica | `db-replica` | 5442 | Solo lectura. Recibe el WAL y lo aplica |
+| Principal | `db-hoteles` | no se publica | Lee y escribe. Manda su registro de cambios (WAL) a la réplica |
+| Réplica | `db-replica` | no se publica | Solo lectura. Recibe el WAL y lo aplica |
 
 ```
             escrituras                      lecturas
@@ -49,7 +49,7 @@ la réplica (lecturas). Si la réplica no responde, la lectura se hace en el pri
 respuesta trae la cabecera `X-DB-Node` con el nodo que la atendió:
 
 ```powershell
-curl.exe -i http://localhost:3001/api/hoteles
+curl.exe -i http://localhost:8090/api/hoteles
 ```
 En la respuesta aparece `X-DB-Node: replica`.
 
