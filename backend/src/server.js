@@ -1,16 +1,16 @@
 'use strict';
 
+const crypto = require('crypto');
 const express = require('express');
 const { Pool, types } = require('pg');
 
-// Las fechas (DATE) se devuelven como texto "YYYY-MM-DD" y no como objetos Date,
-// para que no cambien por la zona horaria.
 types.setTypeParser(1082, (v) => v);
-// Los ids son BIGINT: se devuelven como numero (y no como texto) para que el frontend los use directo.
 types.setTypeParser(20, (v) => parseInt(v, 10));
 
 const PORT = parseInt(process.env.PORT || '3000', 10);
-const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
+const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:8090';
+const AUTH_SECRET = process.env.AUTH_SECRET || 'dev-secret-cambiar-en-produccion';
+const TOKEN_TTL_SEG = parseInt(process.env.TOKEN_TTL_SEG || '86400', 10);
 
 const base = {
   port: parseInt(process.env.DB_PORT || '5432', 10),
@@ -22,7 +22,6 @@ const base = {
   statement_timeout: 10000,
 };
 
-// Escrituras -> nodo principal. Lecturas -> replica (con respaldo al principal si la replica no responde).
 const poolWrite = new Pool({ ...base, host: process.env.DB_HOST_PRIMARY || 'db-hoteles' });
 const poolRead = new Pool({ ...base, host: process.env.DB_HOST_REPLICA || 'db-replica' });
 poolWrite.on('error', (e) => console.error('[pg principal]', e.message));
@@ -32,8 +31,8 @@ const ERRORES_DE_CONEXION = ['ECONNREFUSED', 'ENOTFOUND', 'ETIMEDOUT', 'ECONNRES
 
 function esErrorDeConexion(e) {
   if (ERRORES_DE_CONEXION.includes(e.code)) return true;
-  if (!e.code) return true; // timeout de conexion del pool
-  return /^(08|53|57)/.test(e.code); // clases de error de PostgreSQL: conexion, recursos, apagado
+  if (!e.code) return true;
+  return /^(08|53|57)/.test(e.code);
 }
 
 async function leer(res, sql, params) {
@@ -50,7 +49,6 @@ async function leer(res, sql, params) {
   }
 }
 
-// ---------- validaciones ----------
 function entero(v) {
   const n = Number(v);
   return Number.isInteger(n) && n > 0 && n < 9007199254740991 ? n : null;
@@ -71,14 +69,50 @@ class ErrorHttp extends Error {
 
 const wrap = (fn) => (req, res, next) => fn(req, res, next).catch(next);
 
+// ---------- autenticacion con token firmado (HMAC-SHA256) ----------
+function firmarToken(payload) {
+  const body = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const sig = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+  return `${body}.${sig}`;
+}
+
+function verificarToken(token) {
+  if (typeof token !== 'string' || !token.includes('.')) return null;
+  const [body, sig] = token.split('.');
+  if (!body || !sig) return null;
+  const esperado = crypto.createHmac('sha256', AUTH_SECRET).update(body).digest('base64url');
+  const a = Buffer.from(sig);
+  const b = Buffer.from(esperado);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try {
+    const data = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    if (!data.huespedId || typeof data.exp !== 'number') return null;
+    if (Math.floor(Date.now() / 1000) > data.exp) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+function requerirAuth(req, res, next) {
+  const auth = req.headers.authorization || '';
+  const match = auth.match(/^Bearer\s+(.+)$/i);
+  if (!match) throw new ErrorHttp(401, 'Token de autenticacion requerido');
+  const datos = verificarToken(match[1].trim());
+  if (!datos) throw new ErrorHttp(401, 'Token invalido o expirado');
+  req.usuario = { huespedId: datos.huespedId, email: datos.email || null };
+  next();
+}
+
 // ---------- app ----------
 const app = express();
 app.disable('x-powered-by');
 app.use(express.json({ limit: '10kb' }));
 app.use((req, res, next) => {
   res.set('Access-Control-Allow-Origin', CORS_ORIGIN);
+  res.set('Vary', 'Origin');
   res.set('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
-  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
 });
@@ -98,6 +132,34 @@ app.get('/health', wrap(async (req, res) => {
     estado.replica = 'caida';
   }
   res.status(estado.principal === 'ok' ? 200 : 503).json(estado);
+}));
+
+app.post('/api/auth/login', wrap(async (req, res) => {
+  const b = req.body || {};
+  const huespedId = entero(b.huesped_id);
+  const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+  if (!huespedId) {
+    throw new ErrorHttp(400, 'huesped_id es obligatorio y debe ser un numero');
+  }
+  const r = await leer(res, 'SELECT id, nombre, apellido FROM huesped WHERE id = $1', [huespedId]);
+  if (r.rowCount === 0) {
+    throw new ErrorHttp(401, 'Huesped no encontrado');
+  }
+  if (email) {
+    const c = await leer(
+      res,
+      `SELECT 1 FROM huesped_contacto
+        WHERE huesped_id = $1 AND tipo = 'email' AND lower(valor) = $2
+        LIMIT 1`,
+      [huespedId, email]
+    );
+    if (c.rowCount === 0) {
+      throw new ErrorHttp(401, 'El correo no coincide con el huesped');
+    }
+  }
+  const exp = Math.floor(Date.now() / 1000) + TOKEN_TTL_SEG;
+  const token = firmarToken({ huespedId: r.rows[0].id, exp });
+  res.json({ token, huesped_id: r.rows[0].id, expires_in: TOKEN_TTL_SEG });
 }));
 
 app.get('/api/hoteles', wrap(async (req, res) => {
@@ -142,59 +204,62 @@ app.get('/api/disponibilidad', wrap(async (req, res) => {
   res.json(r.rows);
 }));
 
-app.get('/api/reservas', wrap(async (req, res) => {
-  const huespedId = entero(req.query.huesped_id);
-  if (!huespedId) throw new ErrorHttp(400, 'huesped_id es obligatorio y debe ser un numero');
+app.get('/api/reservas', requerirAuth, wrap(async (req, res) => {
   const r = await leer(res,
-    `SELECT r.id, r.fecha_inicio, r.fecha_fin, r.estado,
+    `SELECT r.id, r.huesped_id, r.fecha_inicio, r.fecha_fin, r.estado,
             h.nombre AS hotel, h.ciudad, hab.numero AS habitacion
        FROM reserva r
        JOIN habitacion hab ON hab.id = r.habitacion_id
        JOIN hotel h        ON h.id   = hab.hotel_id
       WHERE r.huesped_id = $1
       ORDER BY r.fecha_inicio DESC
-      LIMIT 50`, [huespedId]);
+      LIMIT 50`, [req.usuario.huespedId]);
   res.json(r.rows);
 }));
 
-app.post('/api/reservas', wrap(async (req, res) => {
+app.post('/api/reservas', requerirAuth, wrap(async (req, res) => {
   const b = req.body || {};
   const habitacionId = entero(b.habitacion_id);
-  const huespedId = entero(b.huesped_id);
   const inicio = fecha(b.fecha_inicio);
   const fin = fecha(b.fecha_fin);
-  if (!habitacionId || !huespedId || !inicio || !fin) {
-    throw new ErrorHttp(400, 'habitacion_id, huesped_id, fecha_inicio y fecha_fin (YYYY-MM-DD) son obligatorios');
+  if (!habitacionId || !inicio || !fin) {
+    throw new ErrorHttp(400, 'habitacion_id, fecha_inicio y fecha_fin (YYYY-MM-DD) son obligatorios');
   }
   if (fin <= inicio) throw new ErrorHttp(400, 'fecha_fin tiene que ser posterior a fecha_inicio');
   const r = await poolWrite.query(
     `INSERT INTO reserva (habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado)
      VALUES ($1, $2, $3, $4, 'pendiente')
      RETURNING id, habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado`,
-    [habitacionId, huespedId, inicio, fin]);
+    [habitacionId, req.usuario.huespedId, inicio, fin]);
   res.set('X-DB-Node', 'principal').status(201).json(r.rows[0]);
 }));
 
-app.patch('/api/reservas/:id/confirmar', wrap(async (req, res) => {
+app.patch('/api/reservas/:id/confirmar', requerirAuth, wrap(async (req, res) => {
   const id = entero(req.params.id);
   if (!id) throw new ErrorHttp(400, 'id invalido');
   const r = await poolWrite.query(
     `UPDATE reserva SET estado = 'confirmada'
-      WHERE id = $1 AND estado = 'pendiente'
-      RETURNING id, habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado`, [id]);
-  if (r.rowCount === 0) throw new ErrorHttp(404, 'La reserva no existe o no esta pendiente');
+      WHERE id = $1 AND huesped_id = $2 AND estado = 'pendiente'
+      RETURNING id, habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado`,
+    [id, req.usuario.huespedId]);
+  if (r.rowCount === 0) {
+    throw new ErrorHttp(404, 'La reserva no existe, no te pertenece o no esta pendiente');
+  }
   const t = await poolWrite.query('SELECT monto FROM tarifa WHERE reserva_id = $1', [id]);
   res.set('X-DB-Node', 'principal').json({ ...r.rows[0], tarifa: t.rows[0] ? t.rows[0].monto : null });
 }));
 
-app.patch('/api/reservas/:id/cancelar', wrap(async (req, res) => {
+app.patch('/api/reservas/:id/cancelar', requerirAuth, wrap(async (req, res) => {
   const id = entero(req.params.id);
   if (!id) throw new ErrorHttp(400, 'id invalido');
   const r = await poolWrite.query(
     `UPDATE reserva SET estado = 'cancelada'
-      WHERE id = $1 AND estado <> 'cancelada'
-      RETURNING id, habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado`, [id]);
-  if (r.rowCount === 0) throw new ErrorHttp(404, 'La reserva no existe o ya esta cancelada');
+      WHERE id = $1 AND huesped_id = $2 AND estado <> 'cancelada'
+      RETURNING id, habitacion_id, huesped_id, fecha_inicio, fecha_fin, estado`,
+    [id, req.usuario.huespedId]);
+  if (r.rowCount === 0) {
+    throw new ErrorHttp(404, 'La reserva no existe, no te pertenece o ya esta cancelada');
+  }
   res.set('X-DB-Node', 'principal').json(r.rows[0]);
 }));
 
