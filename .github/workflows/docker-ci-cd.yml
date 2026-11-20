@@ -16,10 +16,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout del código
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Configurar Node.js
-        uses: actions/setup-node@39370e3370a6124fca1c757e7459c1a6850a8b26 # v4.1.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.0.1
         with:
           node-version: '22'
 
@@ -31,11 +31,11 @@ jobs:
           npm audit --audit-level=high
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@3b52951635129273194f8f5389098c93849c00e5 # v3.8.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login a Docker Hub
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@9780b0c442fbb1117ed29e0ef89e185259b10b42 # v3.3.0
+        uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -49,7 +49,7 @@ jobs:
           docker build -t fiore2028/hotel-frontend:latest -t fiore2028/hotel-frontend:${{ github.sha }} ./frontend
 
       - name: Escanear imagen Backend con Trivy 0.69.3
-        uses: aquasecurity/trivy-action@90172d3bb5f2e974e0b1a9f0c82e7b90b1d7074a # v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: fiore2028/hotel-backend:${{ github.sha }}
           format: table
@@ -59,7 +59,7 @@ jobs:
           version: '0.69.3'
 
       - name: Escanear imagen Frontend con Trivy 0.69.3
-        uses: aquasecurity/trivy-action@90172d3bb5f2e974e0b1a9f0c82e7b90b1d7074a # v0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: fiore2028/hotel-frontend:${{ github.sha }}
           format: table
