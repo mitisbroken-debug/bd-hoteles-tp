@@ -42,8 +42,6 @@ services:
       - wal_keep_size=1GB
       - -c
       - hot_standby=on
-    ports:
-      - "5440:5432"
     volumes:
       - hoteles-data:/var/lib/postgresql/data
       - ./sql/esquema/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
@@ -81,8 +79,6 @@ services:
           chmod 700 "$$PGDATA"
         fi
         exec postgres -c hot_standby=on -c listen_addresses='*'
-    ports:
-      - "5442:5432"
     volumes:
       - replica-data:/var/lib/postgresql/data
     networks:
@@ -90,7 +86,7 @@ services:
 
   # ---------- Cliente de administracion ----------
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4@sha256:3591b3d02910dcd817dec6fcaa681c278ba6966945283dd0ea0042731c330c83
     container_name: pgadmin-hoteles
     restart: unless-stopped
     depends_on:
@@ -99,7 +95,7 @@ services:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
-      - "5050:80"
+      - "127.0.0.1:5050:80"
     volumes:
       - pgadmin-data:/var/lib/pgadmin
       - ./pgadmin/servers.json:/pgadmin4/servers.json:ro
@@ -125,16 +121,21 @@ services:
       - -c
       - |
         while true; do
+          until pg_isready -h db-hoteles -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"; do
+            echo "[backup] esperando a la base..."
+            sleep 5
+          done
           F=/backups/hoteles_$$(date +%Y%m%d_%H%M%S).dump
           echo "[backup] iniciando $$F"
           if pg_dump -h db-hoteles -U "$$POSTGRES_USER" -d "$$POSTGRES_DB" -Fc -f "$$F"; then
             echo "[backup] OK ($$(du -h "$$F" | cut -f1))"
+            ls -1t /backups/hoteles_*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
+            sleep "$$BACKUP_INTERVAL_SECONDS"
           else
-            echo "[backup] ERROR, se borra el archivo incompleto"
+            echo "[backup] ERROR, reintento en 60 s"
             rm -f "$$F"
+            sleep 60
           fi
-          ls -1t /backups/hoteles_*.dump 2>/dev/null | tail -n +$$((BACKUP_KEEP + 1)) | xargs -r rm -f
-          sleep "$$BACKUP_INTERVAL_SECONDS"
         done
     volumes:
       - ./backups:/backups
